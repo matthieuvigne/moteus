@@ -1,3 +1,16 @@
+# nautilus - a fork for moteus brushless servo driver
+
+`nautilus` is a direct fork of moteus's driver with modified shape and interface to fit inside MyActuator's RMDX motors
+(Mini-Cheatah like design), as a replacement of their driver. The main modifications are:
+
+ - use an SPI interface instead of CAN
+ - secondary SPI port for external encoder
+ - usage of the `CSD88599` half-bridges instead of individual MOSFET to reduce the number of components
+ - modified board shape and layout to fit inside the motor
+ - the design is done using KiCad instead of Eagle
+
+All new files are in the `nautilus` folder.
+
 # moteus brushless servo #
 
 This contains full designs for the moteus brushless servo actuator,
