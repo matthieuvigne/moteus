@@ -1,10 +1,15 @@
 {
   "board": {
-    "active_layer": 37,
+    "active_layer": 2,
     "active_layer_preset": "",
     "auto_track_width": true,
     "hidden_netclasses": [],
-    "hidden_nets": [],
+    "hidden_nets": [
+      "V+",
+      "GNDPWR",
+      "GNDS",
+      "+3.3V"
+    ],
     "high_contrast_mode": 0,
     "net_color_mode": 1,
     "opacity": {
@@ -64,8 +69,8 @@
       39,
       40
     ],
-    "visible_layers": "ffcf0f3_ffffffff",
-    "zone_display_mode": 0
+    "visible_layers": "000f138_ffffffff",
+    "zone_display_mode": 1
   },
   "meta": {
     "filename": "nautilus.kicad_prl",
