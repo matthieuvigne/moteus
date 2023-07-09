@@ -7846,7 +7846,7 @@
     (property "Value" "MountingHole" (at 49.53 141.605 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
-    (property "Footprint" "MountingHole:MountingHole_2.2mm_M2_ISO7380_Pad" (at 46.99 139.7 0)
+    (property "Footprint" "nautilus:MountingHole-Plated" (at 46.99 139.7 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Datasheet" "~" (at 46.99 139.7 0)

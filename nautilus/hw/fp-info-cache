@@ -1,4 +1,4 @@
-21748514309919835
+21750207014057735
 Audio_Module
 Reverb_BTDR-1H
 Digital Reverberation Unit, http://www.belton.co.kr/inc/downfile.php?seq=17&file=pdf (footprint from http://www.uk-electronic.de/PDF/BTDR-1.pdf)
@@ -90321,12 +90321,19 @@ Integrated Circuit
 8
 8
 nautilus
+MountingHole-Plated
+
+
+0
+1
+1
+nautilus
 Q5DC_DMM
 Q5DC_DMM
 Undefined or Miscellaneous
 0
-43
-43
+27
+27
 nautilus
 QFN50P600X600X80-41N-D
 RTA(S-PQFP-N40)_3
