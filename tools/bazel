@@ -63,7 +63,7 @@ def get_workspace_var(var):
 
 BAZEL_REMOTE_SOURCE = 'https://github.com/bazelbuild/bazel/releases/download'
 
-BAZEL_BIN_CACHE = os.path.expanduser('~/.cache/bazel')
+BAZEL_BIN_CACHE = os.path.expanduser('~/dev/build/nautilus')
 BAZEL_VERSION = get_workspace_var('BAZEL_VERSION')
 BAZEL_VERSION_SHA = get_workspace_var('BAZEL_VERSION_SHA')
 

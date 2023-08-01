@@ -60,6 +60,10 @@ FamilyAndVersion DetectMoteusFamily(MillisecondTimer* timer) {
   FamilyAndVersion result;
   result.family = 0;
 
+  // Hard-coded: nautilus 1.0 is fork from r4.11
+  result.hw_version = 8;
+  return result;
+
   // We check for family 1, "moteus hp", by seeing if we can find a
   // DRV8323 on a chip select that is different from that used on all
   // family 0 boards.
@@ -206,14 +210,14 @@ MoteusHwPins FindHardwarePins(FamilyAndVersion fv) {
 
     result.drv8323_enable = PA_3;
     result.drv8323_hiz = PB_7;
-    result.drv8323_cs = PC_4;
+    result.drv8323_cs = PC_13; // nautilus v1.0 modification
 
     result.drv8323_mosi = PA_7;
     result.drv8323_miso = PA_6;
     result.drv8323_sck = PF_0;
     result.drv8323_fault = PB_6;
 
-    result.debug_led1 = PA_5;
+    result.debug_led1 = PF_0;
     result.power_led = PF_1;
 
     // We've picked these particular pins so that all 3 channels are
@@ -223,7 +227,7 @@ MoteusHwPins FindHardwarePins(FamilyAndVersion fv) {
     result.current2 = PB_1;
     result.current3 = PB_2;
 
-    result.as5047_cs = PB_11;
+    result.as5047_cs = PB_10; // nautilus v1.0 modification
 
     result.can_td = PA_12;
     result.can_rd = PA_11;

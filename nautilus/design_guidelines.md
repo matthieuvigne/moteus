@@ -25,8 +25,8 @@ Shunt resistor value:
 
 
 Questions:
- - should all mounting holes be plated ?
- - why is pin 24 of DRV8353 tied to GNDS and not PWR_GND ?
- - soldering of the H-bridges: is it a good idea to increase thermal spoke width ? This seems to be recommanded by TI.
+ - should all mounting holes be plated ? yes
  - easiest design for 3.3V supply at debug (flash) port ?
- - H-Bridges: how to fill zones between pins ?
+
+
+Rsense FC4L32R005FER-ND

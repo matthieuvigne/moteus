@@ -13,7 +13,6 @@ build --strip never
 
 test --test_output=errors
 
-build --workspace_status_command=tools/workspace_status.sh
 
 build -c opt
 
