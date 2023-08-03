@@ -130,6 +130,8 @@ MOTEUS_SOURCES = [
     "uuid.h",
     "uuid.cc",
     "moteus.cc",
+    "nautilus_spi_interface.h",
+    "nautilus_spi_interface.cc",
 ]
 
 MOTEUS_DEPS = [

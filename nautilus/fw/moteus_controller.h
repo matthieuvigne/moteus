@@ -23,6 +23,7 @@
 #include "fw/firmware_info.h"
 #include "fw/millisecond_timer.h"
 #include "fw/system_info.h"
+#include "fw/nautilus_spi_interface.h"
 
 namespace moteus {
 

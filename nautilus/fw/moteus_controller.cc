@@ -327,7 +327,7 @@ aux::AuxHardwareConfig GetAux1HardwareConfig() {
     return aux::AuxHardwareConfig{
       {{
           //          ADC#  CHN    I2C      SPI      USART    TIMER
-          { 0, PA_15,  -1,   0,    nullptr, nullptr, nullptr, nullptr }, // Remapped by nautilus to empty pin
+          { 0, NC,  -1,   0,    nullptr, nullptr, nullptr, nullptr }, // Remapped by nautilus to empty pin
           { 1, PB_13,   2,   5,    nullptr, SPI2,    nullptr, nullptr },
           { 2, PB_14,   0,   5,    nullptr, SPI2,    nullptr, nullptr },
           { 3, PB_15,   1,   15,   nullptr, SPI2,    nullptr, nullptr },
@@ -470,6 +470,7 @@ class MoteusController::Impl : public multiplex::MicroServer::Server {
 
   void Start() {
     bldc_.Start();
+    nautilusSPI_.setup();
   }
 
   void Poll() {
@@ -487,19 +488,7 @@ class MoteusController::Impl : public multiplex::MicroServer::Server {
     aux2_port_.PollMillisecond();
     drv8323_.PollMillisecond();
     bldc_.PollMillisecond();
-    // Blink led
-    static int counter = 0;
-    static bool isSet = false;
-    static DigitalOut led1_{g_hw_pins.debug_led1, 1};
-    counter ++;
-    if (counter % 250 == 0)
-    {
-      isSet = !isSet;
-      if (isSet)
-        led1_ = 1;
-      else
-        led1_ = 0;
-    }
+    nautilusSPI_.poll();
   }
 
   uint32_t Write(multiplex::MicroServer::Register reg,
@@ -1023,6 +1012,8 @@ class MoteusController::Impl : public multiplex::MicroServer::Server {
   MotorPosition motor_position_;
   Drv8323 drv8323_;
   BldcServo bldc_;
+  nautilus::NautilusSPIInterface nautilusSPI_;
+
   ClockManager* const clock_manager_;
   SystemInfo* const system_info_;
   FirmwareInfo* const firmware_;

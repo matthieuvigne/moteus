@@ -1,18 +1,20 @@
 # Nautilus motor driver protocole
 
-Communication with the `nautilus` board is done using SPI. A fixed-size frame of 7 bytes is required for a
+Communication with the `nautilus` board is done using SPI. A fixed-size frame of 8 bytes is required for a
 complete transaction:
 
 Input frame:
  - Byte 0: command byte 0
  - Byte 1: command byte 1 (typically register address)
  - Byte 2-5: data
- - Byte 6: checksum
+ - Byte 6: unused
+ - Byte 7: checksum
 
 Output frame:
  - Byte 0-1: secondary encoder reading
- - Byte 2-5: data
- - Byte 6: checksum
+ - Byte 2: status byte
+ - Byte 3-6: data
+ - Byte 7: checksum
 
 The checksum is simply the sum of the previous 6 bytes of the message.
 
