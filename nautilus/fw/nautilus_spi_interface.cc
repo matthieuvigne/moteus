@@ -8,8 +8,6 @@
 
 using namespace nautilus;
 
-USART_TypeDef* debug_uart_ = nullptr;
-
 #define MESSAGE_LENGTH 8
 
 uint8_t rxBuffer[MESSAGE_LENGTH] = {0};
@@ -17,49 +15,25 @@ uint8_t txBuffer[MESSAGE_LENGTH] = {0}; // Data that is about to be transmitted
 uint8_t posInMessage = 0;   // Current position in the message
 
 
-uint16_t timeCnt = 0;
 
-// // Blink led
-// static int counter = 0;
-// static bool isSet = false;
+// Blink led - debug
+USART_TypeDef* debug_uart_ = nullptr;
+uint16_t timeCnt = 0;
 static DigitalOut led1_{PA_5, 1};
-// counter ++;
-// if (counter % 250 == 0)
-// {
-//     isSet = !isSet;
-//     if (isSet)
-//     led1_ = 1;
-//     else
-//     led1_ = 0;
-// }
+
 
 NautilusSPIInterface::NautilusSPIInterface()
 {
     // Empty on purpose
 }
 
-void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef * hspi)
-{
-    if (reinterpret_cast<uint32_t>(hspi->Instance) == SPI_3)
-    {
-        // led1_ = 1;
-    }
-    for (int i = 0; i < hspi->TxXferSize; i++)
-    {
-        hspi->pTxBuffPtr[i] = hspi->pRxBuffPtr[i];
-        debug_uart_->TDR = hspi->pRxBuffPtr[i];
-    }
-
-    // Start next transaction
-    HAL_SPI_TransmitReceive_IT(hspi, hspi->pTxBuffPtr, hspi->pRxBuffPtr, 2);
-
-    debug_uart_->TDR = 0xaa;
-}
-
 void NautilusSPIInterface::poll()
 {
 
     debug_uart_->TDR = 0x20;
+
+    for (int i = 0; i < posInMessage; i++)
+        debug_uart_->TDR = rxBuffer[i];
 
     timeCnt++;
 }
@@ -69,36 +43,66 @@ extern "C" {
 
 void SPI3_IRQHandler(void)
 {
+    // SPI3->DR = txBuffer[posInMessage];
+
     // Read data
     rxBuffer[posInMessage] = SPI3->DR;
-    debug_uart_->TDR = posInMessage;
-    debug_uart_->TDR = rxBuffer[posInMessage];
-    // Reply with next byte from tx buffer
-    SPI3->DR = txBuffer[posInMessage];
     if (posInMessage < MESSAGE_LENGTH - 1)
         posInMessage ++;
-    debug_uart_->TDR = txBuffer[posInMessage];
+
+    if (posInMessage == 3)
+    {
+        // We have received enough info from the user to send the next 4 bytes
+        txBuffer[3] = rxBuffer[0];
+        txBuffer[4] = rxBuffer[1];
+        txBuffer[5] = 0x04;
+        txBuffer[6] = 0x02;
+        * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) txBuffer[3];
+        * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) txBuffer[4];
+        * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) txBuffer[5];
+        * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) txBuffer[6];
+    }
+    if (posInMessage == 4)
+    {
+        // Send last element: CRC
+        uint8_t const crc = txBuffer[0] + txBuffer[1] + txBuffer[2] + txBuffer[3] +\
+                            txBuffer[4] + txBuffer[5] + txBuffer[6];
+        * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) crc;
+    }
 }
 
 
 void EXTI15_10_IRQHandler(void)
 {
+    /* Clear interrupt flag*/
+    EXTI->PR1 |= (1 << 15);
+
     // Falling edge of CS: a SPI transfer is about to start.
+
+
 
     // Reset position to 0
     posInMessage = 0;
 
-    // Fill txBuffer
+    // Fill txBuffer - note that we need to send 4 bytes to clear the FIFO.
+    // The last one will actually not be sent...
+
+    // First two bytes: encoder
+    // Third byte: status
     txBuffer[0] = (timeCnt >> 8) & 0xFF;
     txBuffer[1] = timeCnt & 0xFF;
+    txBuffer[2] = 0x42;
 
-    // Send first byte
-    // SPI3->DR = txBuffer[posInMessage];
+    * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) txBuffer[0];
+    * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) txBuffer[1];
+    * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) txBuffer[2];
+    // * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) txBuffer[3];
+
+    debug_uart_->TDR = 0xbb;
 
     // Debug: we are in ISR
     // debug_uart_->TDR = 0xAA;
-    /* Clear interrupt flag*/
-    EXTI->PR1 |= (1 << 15);
+
 }
 
 }
@@ -113,8 +117,6 @@ void NautilusSPIInterface::setup()
 
 
     led1_ = 0;
-    // __HAL_RCC_GPIOB_CLK_ENABLE();
-    // __HAL_RCC_SPI3_CLK_ENABLE();
     spi_init(&spi_,
               PB_5_ALT0, // MOSI
               PB_4_ALT0, // MISO
@@ -127,16 +129,21 @@ void NautilusSPIInterface::setup()
     // Enable interrupt on SPI3 RX
     NVIC->ISER[1] |= (1u << 19);
 
-    // Enable data recieved interrupt
+    // Enable data recieved interrupt, work in 8-bits mode
     SPI3->CR2 |= (1u << 6);
+    SPI3->CR2 &= ~(1u << 7);
+    SPI3->CR2 &= ~(1u << 5);
+    SPI3->CR2 &= ~(1u << 5);
+
 
     // Interrupt on rising edge of slave-select, to reset the counter.
 
     // Enable line 15
     EXTI->IMR1 |= (1u << 15);
 
-    // Falling edge
+    // Falling edge only
     EXTI->FTSR1 |= (1u << 15);
+    EXTI->RTSR1 &= ~(1u << 15);
 
     // Line 15: use pin A15
     SYSCFG->EXTICR[3] &= ~(0b1111 << 8);
