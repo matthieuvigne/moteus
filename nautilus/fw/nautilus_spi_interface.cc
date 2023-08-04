@@ -15,6 +15,12 @@ uint8_t txBuffer[MESSAGE_LENGTH] = {0}; // Data that is about to be transmitted
 uint8_t posInMessage = 0;   // Current position in the message
 
 
+// SPI3 configuration
+// Slave mode 0
+#define SPICR1 0b0000000001111000
+// 8 bits, generate RXNEIE on half-full buffer (8 bits)
+#define SPICR2 0b0001011101001000
+
 
 // Blink led - debug
 USART_TypeDef* debug_uart_ = nullptr;
@@ -43,8 +49,6 @@ extern "C" {
 
 void SPI3_IRQHandler(void)
 {
-    // SPI3->DR = txBuffer[posInMessage];
-
     // Read data
     rxBuffer[posInMessage] = SPI3->DR;
     if (posInMessage < MESSAGE_LENGTH - 1)
@@ -77,32 +81,35 @@ void EXTI15_10_IRQHandler(void)
     /* Clear interrupt flag*/
     EXTI->PR1 |= (1 << 15);
 
-    // Falling edge of CS: a SPI transfer is about to start.
+    // Rising edge: SPI transfer done, reset SPI to clear TX buffer.
+    if (GPIOA->IDR & 0x8000)  // Read pin A15
+    {
+        // Reconfigure SPI
+        RCC->APB1RSTR1 |= (1 << 15);
 
+        RCC->APB1RSTR1 &= ~(1 << 15);
+        SPI3->CR1 = SPICR1;
+        SPI3->CR2 = SPICR2;
 
+    }
+    else
+    {
+        // Falling edge of CS: a SPI transfer is about to start.
 
-    // Reset position to 0
-    posInMessage = 0;
+        // Reset position to 0
+        posInMessage = 0;
 
-    // Fill txBuffer - note that we need to send 4 bytes to clear the FIFO.
-    // The last one will actually not be sent...
+        // Fill txBuffer with first three bytes
+        // First two bytes: encoder
+        // Third byte: status
+        txBuffer[0] = (timeCnt >> 8) & 0xFF;
+        txBuffer[1] = timeCnt & 0xFF;
+        txBuffer[2] = 0x42;
 
-    // First two bytes: encoder
-    // Third byte: status
-    txBuffer[0] = (timeCnt >> 8) & 0xFF;
-    txBuffer[1] = timeCnt & 0xFF;
-    txBuffer[2] = 0x42;
-
-    * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) txBuffer[0];
-    * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) txBuffer[1];
-    * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) txBuffer[2];
-    // * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) txBuffer[3];
-
-    debug_uart_->TDR = 0xbb;
-
-    // Debug: we are in ISR
-    // debug_uart_->TDR = 0xAA;
-
+        * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) txBuffer[0];
+        * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) txBuffer[1];
+        * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) txBuffer[2];
+    }
 }
 
 }
@@ -123,32 +130,26 @@ void NautilusSPIInterface::setup()
               PB_3_ALT0, // SCK
               PA_15_ALT0); // CS
 
-    spi_format(&spi_, 8, 0, 1); // 8 bits, mode 8, slave
-
+    SPI3->CR1 = SPICR1;
+    SPI3->CR2 = SPICR2;
     // SPI config: see https://www.youtube.com/watch?v=_RBXQLPGr7Q
     // Enable interrupt on SPI3 RX
     NVIC->ISER[1] |= (1u << 19);
 
-    // Enable data recieved interrupt, work in 8-bits mode
-    SPI3->CR2 |= (1u << 6);
-    SPI3->CR2 &= ~(1u << 7);
-    SPI3->CR2 &= ~(1u << 5);
-    SPI3->CR2 &= ~(1u << 5);
 
 
-    // Interrupt on rising edge of slave-select, to reset the counter.
+    // Interrupt on slave-select edges.
 
     // Enable line 15
     EXTI->IMR1 |= (1u << 15);
 
-    // Falling edge only
+    // Rising and falling edge interrupts
     EXTI->FTSR1 |= (1u << 15);
-    EXTI->RTSR1 &= ~(1u << 15);
+    EXTI->RTSR1 |= (1u << 15);
 
     // Line 15: use pin A15
     SYSCFG->EXTICR[3] &= ~(0b1111 << 8);
 
     // Enable EXTI15_10: NVIC 40
     NVIC->ISER[1] |= (1u << 8);
-
 }
