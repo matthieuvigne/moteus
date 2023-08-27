@@ -16,8 +16,13 @@ uint8_t posInMessage = 0;   // Current position in the message
 
 
 // SPI3 configuration
-// Slave mode 0
+// Slave mode 3
 #define SPICR1 0b0000000001111000
+
+// Mode 2: 10
+// Mode 1: 00
+// Mode 0/3 don't work for some reason.
+
 // 8 bits, generate RXNEIE on half-full buffer (8 bits)
 #define SPICR2 0b0001011101001000
 
@@ -25,7 +30,6 @@ uint8_t posInMessage = 0;   // Current position in the message
 // Blink led - debug
 USART_TypeDef* debug_uart_ = nullptr;
 uint16_t timeCnt = 0;
-static DigitalOut led1_{PA_5, 1};
 
 
 NautilusSPIInterface::NautilusSPIInterface()
@@ -36,12 +40,26 @@ NautilusSPIInterface::NautilusSPIInterface()
 void NautilusSPIInterface::poll()
 {
 
-    debug_uart_->TDR = 0x20;
+    debug_uart_->TDR = (SPICR1 & 0xFF);
 
-    for (int i = 0; i < posInMessage; i++)
-        debug_uart_->TDR = rxBuffer[i];
+    //for (int i = 0; i < posInMessage; i++)
+    //    debug_uart_->TDR = rxBuffer[i];
 
     timeCnt++;
+    static int counter = 0;
+    static bool isSet = false;
+    static DigitalOut led1_(PF_0, 1);
+
+    counter ++;
+    if (counter % 1000 == 0)
+    {
+      isSet = !isSet;
+      if (isSet)
+        led1_ = 1;
+      else
+        led1_ = 0;
+    }
+
 }
 
 // Avoid C++ name-mangling
@@ -90,7 +108,6 @@ void EXTI15_10_IRQHandler(void)
         RCC->APB1RSTR1 &= ~(1 << 15);
         SPI3->CR1 = SPICR1;
         SPI3->CR2 = SPICR2;
-
     }
     else
     {
@@ -98,7 +115,6 @@ void EXTI15_10_IRQHandler(void)
 
         // Reset position to 0
         posInMessage = 0;
-
         // Fill txBuffer with first three bytes
         // First two bytes: encoder
         // Third byte: status
@@ -117,13 +133,17 @@ void EXTI15_10_IRQHandler(void)
 
 void NautilusSPIInterface::setup()
 {
+    // Clear oscillator config
+    // RCC->CR &= ~(1 << 16);
+    // RCC->BDCR &= ~(1 << 0);
+
 
     const auto uart = pinmap_peripheral(
         PC_10_ALT0, PinMap_UART_TX);
     debug_uart_ = reinterpret_cast<USART_TypeDef*>(uart);
 
 
-    led1_ = 0;
+    // led1_ = 0;
     spi_init(&spi_,
               PB_5_ALT0, // MOSI
               PB_4_ALT0, // MISO

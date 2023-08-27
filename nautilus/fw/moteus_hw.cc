@@ -214,7 +214,7 @@ MoteusHwPins FindHardwarePins(FamilyAndVersion fv) {
 
     result.drv8323_mosi = PA_7;
     result.drv8323_miso = PA_6;
-    result.drv8323_sck = PF_0;
+    result.drv8323_sck = PA_5;
     result.drv8323_fault = PB_6;
 
     result.debug_led1 = PF_0;

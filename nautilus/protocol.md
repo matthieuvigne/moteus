@@ -1,7 +1,6 @@
-# Nautilus motor driver protocole
+# Nautilus motor driver protocol
 
-Communication with the `nautilus` board is done using SPI. A fixed-size frame of 8 bytes is required for a
-complete transaction:
+Communication with the `nautilus` board is done using SPI. A fixed-size frame of 8 bytes is required for a complete transaction:
 
 Input frame:
  - Byte 0: command byte 0
@@ -17,6 +16,8 @@ Output frame:
  - Byte 7: checksum
 
 The checksum is simply the sum of the previous 6 bytes of the message.
+
+**Note: for now, `nautilus` only supports SPI mode 1.**
 
 ## Available commands
 
