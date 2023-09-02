@@ -15,12 +15,15 @@ uint8_t txBuffer[MESSAGE_LENGTH] = {0}; // Data that is about to be transmitted
 uint8_t posInMessage = 0;   // Current position in the message
 
 
+moteus::BldcServo::CommandData* command;
+moteus::BldcServo* bldc;
+
 // SPI3 configuration
 // Slave mode 3
-#define SPICR1 0b0000000001111000
+#define SPICR1 0b0000000001111010
 
 // Mode 2: 10
-// Mode 1: 00
+// Mode 1: 00 - but doesn't work for read (1-bit shift)
 // Mode 0/3 don't work for some reason.
 
 // 8 bits, generate RXNEIE on half-full buffer (8 bits)
@@ -32,9 +35,11 @@ USART_TypeDef* debug_uart_ = nullptr;
 uint16_t timeCnt = 0;
 
 
-NautilusSPIInterface::NautilusSPIInterface()
+NautilusSPIInterface::NautilusSPIInterface(moteus::BldcServo* bldcIn,
+                                           moteus::BldcServo::CommandData* commandIn)
 {
-    // Empty on purpose
+    command = commandIn;
+    bldc = bldcIn;
 }
 
 void NautilusSPIInterface::poll()
@@ -46,21 +51,26 @@ void NautilusSPIInterface::poll()
     //    debug_uart_->TDR = rxBuffer[i];
 
     timeCnt++;
-    static int counter = 0;
-    static bool isSet = false;
-    static DigitalOut led1_(PF_0, 1);
-
-    counter ++;
-    if (counter % 1000 == 0)
-    {
-      isSet = !isSet;
-      if (isSet)
-        led1_ = 1;
-      else
-        led1_ = 0;
-    }
 
 }
+
+
+uint32_t nautilus::processReadCommand(uint8_t const& registerAddress)
+{
+    switch ((registerAddress))
+    {
+    case SPIRegister::currentMode: return 1;
+    case SPIRegister::faultCode: return 55;
+    default: return 0;
+    }
+}
+
+// Handle write query.
+void nautilus::processWriteCommand(uint8_t const& registerAddress, uint32_t const& registerValue)
+{
+    // Empty for now
+}
+
 
 // Avoid C++ name-mangling
 extern "C" {
@@ -74,11 +84,29 @@ void SPI3_IRQHandler(void)
 
     if (posInMessage == 3)
     {
+
+
+        static DigitalOut led1_(PF_0, 1);
+        static bool isOn = true;
+
+        // We have received enough info from the user to know what to do.
+        uint32_t data = 0;
+        if (rxBuffer[0] == static_cast<uint8_t>(SPICommand::regRead))
+        {
+            // Handle read request
+            data = nautilus::processReadCommand(rxBuffer[1]);
+            isOn = !isOn;
+            if (isOn)
+                led1_ = 1;
+            else
+                led1_ = 0;
+        }
+
         // We have received enough info from the user to send the next 4 bytes
-        txBuffer[3] = rxBuffer[0];
-        txBuffer[4] = rxBuffer[1];
-        txBuffer[5] = 0x04;
-        txBuffer[6] = 0x02;
+        txBuffer[3] = (data << 24) & 0xFF;
+        txBuffer[4] = (data << 16) & 0xFF;
+        txBuffer[5] = (data << 8) & 0xFF;
+        txBuffer[6] = (data) & 0xFF;
         * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) txBuffer[3];
         * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) txBuffer[4];
         * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) txBuffer[5];

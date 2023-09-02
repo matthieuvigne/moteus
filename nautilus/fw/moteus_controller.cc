@@ -466,7 +466,9 @@ class MoteusController::Impl : public multiplex::MicroServer::Server {
           }()),
         clock_manager_(clock_manager),
         system_info_(system_info),
-        firmware_(firmware) {}
+        firmware_(firmware),
+        nautilusSPI_(&bldc_, &command_)
+  {}
 
   void Start() {
     bldc_.Start();
@@ -1012,7 +1014,6 @@ class MoteusController::Impl : public multiplex::MicroServer::Server {
   MotorPosition motor_position_;
   Drv8323 drv8323_;
   BldcServo bldc_;
-  nautilus::NautilusSPIInterface nautilusSPI_;
 
   ClockManager* const clock_manager_;
   SystemInfo* const system_info_;
@@ -1020,6 +1021,7 @@ class MoteusController::Impl : public multiplex::MicroServer::Server {
 
   bool command_valid_ = false;
   BldcServo::CommandData command_;
+  nautilus::NautilusSPIInterface nautilusSPI_;
 };
 
 MoteusController::MoteusController(micro::Pool* pool,

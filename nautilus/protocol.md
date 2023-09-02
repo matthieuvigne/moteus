@@ -11,13 +11,14 @@ Input frame:
 
 Output frame:
  - Byte 0-1: secondary encoder reading
- - Byte 2: status byte
+ - Byte 2: current working mode
  - Byte 3-6: data
  - Byte 7: checksum
 
 The checksum is simply the sum of the previous 6 bytes of the message.
 
 **Note: for now, `nautilus` only supports SPI mode 1.**
+
 
 ## Available commands
 
@@ -46,8 +47,8 @@ Store the calibration result into persistent memory.
 
 Address | Name                        | R/W | Persistent ? | Data type | Description
 ------- | ------------------          | --- | ------------ | --------- | -----------
-0x00    | Current mode                | RW  | No           | uint32_t  | Current working mode, see details below
-0x01    | Last error                  | RO  | No           | uint32_t  | Last error to have occured
+0x00    | Current mode                | RW  | No           | uint8_t   | Current working mode, see details below
+0x01    | Fault code                  | RO  | No           | uint32_t  | Fault error code
 
 0x10    | Measured position           | RO  | No           | float32_t | Measured position, rad
 0x11    | Measured speed              | RO  | No           | float32_t | Measured speed, rad/s
@@ -88,14 +89,24 @@ Address | Name                        | R/W | Persistent ? | Data type | Descrip
 
 ### 0x00: Current mode
 
-List mode of operations:
+Same as moteus:
 
- - 0x00: power off
- - 0x01: brake
- - 0x02: voltage FOC (commutation)
- - 0x03: current mode
- - 0x04: velocity mode
+    0 => stopped = writeable, clears faults
+    1 => fault
+    2,3,4 => preparing to operate
+    5 => PWM mode
+    6 => voltage mode
+    7 => voltage FOC
+    8 => voltage DQ
+    9 => current
+    10 => position
+    11 => timeout
+    12 => zero velocity
+    13 => stay within
+    14 => measure inductance
+    15 => brake
+
 
  ### 0x01: Last error
 
- List of errors: TODO
+Same as moteus 0x00f - fault code
