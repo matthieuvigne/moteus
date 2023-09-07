@@ -459,9 +459,9 @@ struct BldcServoConfig {
   // If enabled, slightly more instructions are used per cycle, but
   // the motor temperature will be available for throttling in
   // addition to the FET temperature.
-  bool enable_motor_temperature = false;
-  float motor_derate_temperature = 50.0f;
-  float motor_fault_temperature = std::numeric_limits<float>::quiet_NaN();
+  bool enable_motor_temperature = true; // Changed by nautilus
+  float motor_derate_temperature = 70.0f;
+  float motor_fault_temperature = 110.0f;
 
   float velocity_threshold = 0.0f;
   float position_derate = 0.02f;

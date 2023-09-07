@@ -85,9 +85,9 @@ uint32_t nautilus::processReadCommand(uint8_t const& registerAddress)
     case SPIRegister::measuredUPhaseA: return 0;
     case SPIRegister::measuredUPhaseB: return 0;
     case SPIRegister::measuredUPhaseC: return 0;
-    case SPIRegister::measuredMotTemp: return 0;
-    case SPIRegister::measuredDriveTemp: return 0;
-    case SPIRegister::measuredUBat: return 0;
+    case SPIRegister::measuredMotTemp: debug_uart_->TDR = static_cast<uint8_t>(bldc->status().motor_temp_C); return fToUInt(bldc->status().motor_temp_C);
+    case SPIRegister::measuredDriveTemp: debug_uart_->TDR = static_cast<uint8_t>(bldc->status().fet_temp_C); return fToUInt(bldc->status().fet_temp_C);
+    case SPIRegister::measuredUBat: debug_uart_->TDR = static_cast<uint8_t>(bldc->status().bus_V); return fToUInt(bldc->status().bus_V);
     case SPIRegister::targetPosition: return 0;
     case SPIRegister::targetVelocity: return 0;
     case SPIRegister::targetIQ: return 0;

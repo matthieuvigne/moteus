@@ -193,14 +193,13 @@ int main(void) {
   micro::SizedPool<20000> pool;
 
   std::optional<HardwareUart> rs485;
-  // std::optional<HardwareUart> rs485;
   if (g_hw_pins.uart_tx != NC) {
     rs485.emplace(&pool, &timer, []() {
       HardwareUart::Options options;
       options.tx = g_hw_pins.uart_tx;
       options.rx = g_hw_pins.uart_rx;
       options.dir = g_hw_pins.uart_dir;
-      options.baud_rate = 115200;
+      options.baud_rate = 1000000;
       return options;
                                  }());
   }
