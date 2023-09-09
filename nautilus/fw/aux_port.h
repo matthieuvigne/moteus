@@ -39,7 +39,6 @@
 #include "fw/stm32_i2c.h"
 
 namespace moteus {
-
 class AuxPort {
  public:
   using Config = aux::AuxConfig;
@@ -83,7 +82,7 @@ class AuxPort {
     if (hasExternalEncoder)
     {
       config_.i2c.devices[0].type = aux::I2C::DeviceConfig::kAs5048;
-      config_.i2c.devices[0].poll_ms = 2;
+      config_.i2c.devices[0].poll_ms = 1;
       config_.pins[0].mode = aux::Pin::Mode::kI2C;
       config_.pins[1].mode = aux::Pin::Mode::kI2C;
     }
@@ -319,6 +318,7 @@ class AuxPort {
             status.error_count++;
             break;
           }
+          status.error_count = 0;
 
           ParseI2c(i);
           break;
@@ -582,6 +582,13 @@ class AuxPort {
 
       if (state.ms_since_last_poll >= config.poll_ms) {
         state.ms_since_last_poll = 0;
+        // We should not be pending on the last read: this may indicate
+        // that the slave is absent. Consequently, we reset the diagnostic register
+        // to indicate an error.
+        if (status_.i2c.devices[i].error_count > 2)
+        {
+          status_.i2c.devices[i].ams_diag = 0;
+        }
         state.pending = true;
 
         switch (config.type) {
