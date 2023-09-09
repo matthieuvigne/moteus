@@ -10,7 +10,7 @@ Input frame:
  - Byte 7: checksum
 
 Output frame:
- - Byte 0-1: secondary encoder reading
+ - Byte 0-1: secondary encoder reading (14LSB) ; MSB 1 indicates a valid reading (Diagnostic register = 1)
  - Byte 2: current working mode
  - Byte 3-6: data
  - Byte 7: checksum

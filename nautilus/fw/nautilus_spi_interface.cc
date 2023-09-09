@@ -178,9 +178,13 @@ void EXTI15_10_IRQHandler(void)
         posInMessage = 0;
         // Fill txBuffer with first three bytes
         // First two bytes: encoder
+        uint16_t encVal = bldc->aux2().i2c.devices[0].value;
+        // Check valid reading
+        if (bldc->aux2().i2c.devices[0].ams_diag == 0x01)
+            encVal |= 1 << 15;
         // Third byte: status
-        txBuffer[0] = (timeCnt >> 8) & 0xFF;
-        txBuffer[1] = timeCnt & 0xFF;
+        txBuffer[0] = (encVal >> 8) & 0xFF;
+        txBuffer[1] = encVal & 0xFF;
         txBuffer[2] = bldc->status().mode;
 
         * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) txBuffer[0];
@@ -194,7 +198,6 @@ void EXTI15_10_IRQHandler(void)
 
 void NautilusSPIInterface::setup()
 {
-    // Clear oscillator config
     const auto uart = pinmap_peripheral(
         PC_10_ALT0, PinMap_UART_TX);
     debug_uart_ = reinterpret_cast<USART_TypeDef*>(uart);

@@ -60,7 +60,8 @@ class AuxPort {
           mjlib::micro::AsyncStream* tunnel_stream,
           MillisecondTimer* timer,
           SpiDefault spi_default,
-          std::array<DMA_Channel_TypeDef*, 4> dma_channels)
+          std::array<DMA_Channel_TypeDef*, 4> dma_channels,
+          bool hasExternalEncoder = false)
       : tunnel_stream_(tunnel_stream),
         timer_(timer),
         adc_info_(*adc_info),
@@ -77,6 +78,16 @@ class AuxPort {
         break;
       }
     }
+
+    // Hard-code aux2 to I2C external encoder
+    if (hasExternalEncoder)
+    {
+      config_.i2c.devices[0].type = aux::I2C::DeviceConfig::kAs5048;
+      config_.i2c.devices[0].poll_ms = 2;
+      config_.pins[0].mode = aux::Pin::Mode::kI2C;
+      config_.pins[1].mode = aux::Pin::Mode::kI2C;
+    }
+
     persistent_config->Register(aux_name, &config_,
                                 std::bind(&AuxPort::HandleConfigUpdate, this));
     telemetry_manager->Register(aux_name, &status_);
@@ -531,7 +542,7 @@ class AuxPort {
 
     __disable_irq();
     status->value =
-        (encoder_raw_data_[4] << 8) |
+        (encoder_raw_data_[4] << 6) |
         (encoder_raw_data_[5]);
     status->nonce += 1;
     __enable_irq();
