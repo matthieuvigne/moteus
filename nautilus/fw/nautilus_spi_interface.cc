@@ -74,37 +74,37 @@ uint32_t nautilus::processReadCommand(uint8_t const& registerAddress)
 
     switch ((registerAddress))
     {
-    case SPIRegister::currentMode: return bldc->status().mode;
-    case SPIRegister::faultCode: return static_cast<uint32_t>(bldc->status().fault);
-    case SPIRegister::measuredPosition: return fToUInt(static_cast<float>(bldc->motor_position().sources[0].filtered_value / bldc->motor_position_config()->sources[0].cpr * 2 * M_PI));
-    case SPIRegister::measuredVelocity: return bldc->motor_position().sources[0].raw;
-    case SPIRegister::measuredIQ: return bldc->motor_position().sources[0].nonce;
-    case SPIRegister::measuredIPhaseA: return 0;
-    case SPIRegister::measuredIPhaseB: return 0;
-    case SPIRegister::measuredIPhaseC: return 0;
-    case SPIRegister::measuredUPhaseA: return 0;
-    case SPIRegister::measuredUPhaseB: return 0;
-    case SPIRegister::measuredUPhaseC: return 0;
-    case SPIRegister::measuredMotTemp: debug_uart_->TDR = static_cast<uint8_t>(bldc->status().motor_temp_C); return fToUInt(bldc->status().motor_temp_C);
-    case SPIRegister::measuredDriveTemp: debug_uart_->TDR = static_cast<uint8_t>(bldc->status().fet_temp_C); return fToUInt(bldc->status().fet_temp_C);
-    case SPIRegister::measuredUBat: debug_uart_->TDR = static_cast<uint8_t>(bldc->status().bus_V); return fToUInt(bldc->status().bus_V);
-    case SPIRegister::targetPosition: return 0;
-    case SPIRegister::targetVelocity: return 0;
-    case SPIRegister::targetIQ: return 0;
-    case SPIRegister::rawEncoderPos: return 0;
-    case SPIRegister::encoderOrientation: return 0;
-    case SPIRegister::commutationOffset: return 0;
-    case SPIRegister::currentLoopKp: return 0;
-    case SPIRegister::currentLoopKI: return 0;
-    case SPIRegister::currentLoopIntMax: return 0;
-    case SPIRegister::velocityLoopKp: return 0;
-    case SPIRegister::velocityLoopKI: return 0;
-    case SPIRegister::velocityLoopIntMax: return 0;
-    case SPIRegister::motorMaxCurrent: return 0;
-    case SPIRegister::motorMaxTemperature: return 0;
-    case SPIRegister::driverMaxTemperature: return 0;
-    case SPIRegister::commTimeout: return 0;
-    default: return 0;
+    case SPIRegister::currentMode:          return bldc->status().mode;
+    case SPIRegister::faultCode:            return static_cast<uint32_t>(bldc->status().fault);
+    case SPIRegister::measuredPosition:     return fToUInt(static_cast<float>(bldc->motor_position().sources[0].filtered_value / bldc->motor_position_config()->sources[0].cpr * 2 * M_PI));
+    case SPIRegister::measuredVelocity:     return fToUInt(static_cast<float>(bldc->motor_position().sources[0].velocity / bldc->motor_position_config()->sources[0].cpr * 2 * M_PI));
+    case SPIRegister::measuredIQ:           return bldc->motor_position().sources[0].offset_value;
+    case SPIRegister::measuredIPhaseA:      return bldc->motor_position().sources[0].compensated_value;
+    case SPIRegister::measuredIPhaseB:      return fToUInt(bldc->motor_position().sources[0].velocity);
+    case SPIRegister::measuredIPhaseC:      return fToUInt(bldc->motor_position().sources[0].filtered_value);
+    case SPIRegister::measuredUPhaseA:      return fToUInt(0.0);    // Not implemented for now
+    case SPIRegister::measuredUPhaseB:      return fToUInt(0.0);    // Not implemented for now
+    case SPIRegister::measuredUPhaseC:      return fToUInt(0.0);    // Not implemented for now
+    case SPIRegister::measuredMotTemp:      return fToUInt(bldc->config().enable_motor_temperature ? bldc->status().motor_temp_C : -1);
+    case SPIRegister::measuredDriveTemp:    return fToUInt(bldc->status().fet_temp_C);
+    case SPIRegister::measuredUBat:         return fToUInt(bldc->status().bus_V);
+    case SPIRegister::targetPosition:       return 0;
+    case SPIRegister::targetVelocity:       return 0;
+    case SPIRegister::targetIQ:             return 0;
+    case SPIRegister::rawEncoderPos:        return bldc->motor_position().sources[0].raw;
+    case SPIRegister::encoderOrientation:   return 0;
+    case SPIRegister::commutationOffset:    return 0;
+    case SPIRegister::currentLoopKp:        return 0;
+    case SPIRegister::currentLoopKI:        return 0;
+    case SPIRegister::currentLoopIntMax:    return 0;
+    case SPIRegister::velocityLoopKp:       return 0;
+    case SPIRegister::velocityLoopKI:       return 0;
+    case SPIRegister::velocityLoopIntMax:   return 0;
+    case SPIRegister::motorMaxCurrent:      return fToUInt(bldc->config().max_current_A);
+    case SPIRegister::motorMaxTemperature:  return fToUInt(bldc->config().enable_motor_temperature ? bldc->config().motor_fault_temperature : -1);
+    case SPIRegister::driverMaxTemperature: return fToUInt(bldc->config().fault_temperature);
+    case SPIRegister::commTimeout:          return fToUInt(bldc->config().default_timeout_s);
+    default:                                return 0;
     }
 }
 

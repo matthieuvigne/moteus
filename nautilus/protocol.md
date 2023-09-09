@@ -82,7 +82,7 @@ Address | Name                        | R/W | Persistent ? | Data type | Descrip
 0x50    | Motor max current           | RW  | Yes          | float32_t | Maximum motor current, A
 0x51    | Motor max temperature       | RW  | Yes          | float32_t | Maximum motor temperature, deg C
 0x52    | Mosfet max temperature      | RW  | Yes          | float32_t | Maximum mosfet temperature, deg C
-0x53    | Communication timeout delay | RW  | Yes          | uint16_t  | Communication timeout limit, ms
+0x53    | Communication timeout delay | RW  | Yes          | float32_t  | Communication timeout, s
 
 
 ## Register details

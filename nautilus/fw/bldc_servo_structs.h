@@ -364,15 +364,16 @@ struct BldcServoCommandData {
 };
 
 struct BldcServoMotor {
-  uint8_t poles = 0;
+  // Hard-code number of poles for RMDXV2 actuator.
+  uint8_t poles = 28;
 
   // Invert the order of phase movement.
   uint8_t phase_invert = 0;
 
-  float resistance_ohm = 0.0f;
+  float resistance_ohm = 0.165f;
 
   // Hz is electrical
-  float v_per_hz = 0.0f;
+  float v_per_hz = 0.006564286f;
 
   // Electrical phase offset in radians as a function of encoder
   // position.
@@ -459,7 +460,7 @@ struct BldcServoConfig {
   // If enabled, slightly more instructions are used per cycle, but
   // the motor temperature will be available for throttling in
   // addition to the FET temperature.
-  bool enable_motor_temperature = true; // Changed by nautilus
+  bool enable_motor_temperature = false;
   float motor_derate_temperature = 70.0f;
   float motor_fault_temperature = 110.0f;
 
@@ -519,7 +520,7 @@ struct BldcServoConfig {
   //  0 - "stopped" - motor driver disengaged
   //  12 - "zero velocity" - derivative only position control
   //  15 - "brake" - all motor phases shorted to ground
-  uint8_t timeout_mode = 12;
+  uint8_t timeout_mode = 0;
 
   // Similar to 'max_voltage', the flux braking default voltage is
   // board rev dependent.
@@ -531,7 +532,7 @@ struct BldcServoConfig {
       invalid_float();
   float flux_brake_resistance_ohm = 0.025f;
 
-  float max_current_A = 100.0f;
+  float max_current_A = 10.0f;
   float derate_current_A = -20.0f;
 
   // When the maximum velocity exceeds this value, a current limit
