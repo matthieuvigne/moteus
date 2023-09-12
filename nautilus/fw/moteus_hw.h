@@ -47,7 +47,7 @@ struct MoteusHwPins {
   PinName drv8323_fault = NC;
 
   PinName debug_led1 = NC;
-  PinName power_led = NC;
+  PinName status_led = NC;
 
   PinName current1 = NC;
   PinName current2 = NC;

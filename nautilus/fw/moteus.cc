@@ -187,9 +187,6 @@ int main(void) {
     DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
   }
 
-  // Turn on our power light.
-  DigitalOut power_led(g_hw_pins.power_led, 0);
-
   micro::SizedPool<20000> pool;
 
   std::optional<HardwareUart> rs485;

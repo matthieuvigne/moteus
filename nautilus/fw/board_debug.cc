@@ -340,7 +340,7 @@ class BoardDebug::Impl {
         return;
       }
 
-      DigitalOut* const led = (which_led == "1") ? &led1_ : &led2_;
+      DigitalOut* const led = &led1_;
       bool* const led_state = (which_led == "1") ? &data_.led1 : &data_.led2;
       const bool value = (state != "0");
 
@@ -955,7 +955,7 @@ class BoardDebug::Impl {
   base::inplace_function<void()> data_update_;
 
   DigitalOut led1_{g_hw_pins.debug_led1, 1};
-  DigitalOut led2_{g_hw_pins.power_led};
+  // DigitalOut led2_{g_hw_pins.power_led};
 
   multiplex::MicroServer* multiplex_protocol_;
   BldcServo* const bldc_;

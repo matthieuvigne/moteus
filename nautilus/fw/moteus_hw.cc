@@ -217,8 +217,8 @@ MoteusHwPins FindHardwarePins(FamilyAndVersion fv) {
     result.drv8323_sck = PA_5;
     result.drv8323_fault = PB_6;
 
-    result.debug_led1 = PF_0;
-    result.power_led = PF_1;
+    result.debug_led1 = PF_1; // Red led
+    result.status_led = PF_0;  // Green led
 
     // We've picked these particular pins so that all 3 channels are
     // one of the "slow" channels so they will have similar analog
@@ -245,7 +245,7 @@ MoteusHwPins FindHardwarePins(FamilyAndVersion fv) {
     result.drv8323_fault = PB_13;
 
     result.debug_led1 = PB_15;
-    result.power_led = PC_6;
+    // result.power_led = PC_6;
 
     // Family 1 devices should have all current sense inputs on "fast"
     // channels.
