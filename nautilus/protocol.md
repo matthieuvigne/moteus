@@ -30,24 +30,27 @@ Write data to the register <reg>. If the register is non-writable, this has no e
 
 Read data from register <reg>.
 
-## 0x03 0x00: Perform calibration
+## 0x03: Perform commutation
 
-Enter calibration mode: in voltage FOC, perform a full sweep of an electrical phase at the specified
-velocity and power.
+For encoder commutation: enter voltage FOC mode:
+ - next 4 bytes: float32_t, phase angle (0-1)
+ - bytes 4-5: uint16_t, voltage amplitude as a fraction of maximum voltage
 
- - data[0-1]: uint16, duration of the sweep in ms.
- - data[2-3]: uint16, amplitude of the voltage in steps of 0.1%
-
-## 0x03 0x01: Store calibration results
+## 0x04 0x00: Store calibration results
 
 Store the calibration result into persistent memory.
+
+ - data[0-1]: uint16, encoder zero position
+ - data[2]: uint8, encoder direction
+
+## 0x05 0x00: Stop motor
 
 
 ## Register list
 
 Address | Name                        | R/W | Persistent ? | Data type | Description
 ------- | ------------------          | --- | ------------ | --------- | -----------
-0x00    | Current mode                | RW  | No           | uint8_t   | Current working mode, see details below
+0x00    | Current mode                | RO  | No           | uint8_t   | Current working mode, see details below
 0x01    | Fault code                  | RO  | No           | uint32_t  | Fault error code
 
 0x10    | Measured position           | RO  | No           | float32_t | Measured position, rad
@@ -63,9 +66,9 @@ Address | Name                        | R/W | Persistent ? | Data type | Descrip
 0x1A    | Measured mosfet temperature | RO  | No           | float32_t | Measured mosfet temperature, C
 0x1B    | Measured battery voltage    | RO  | No           | float32_t | Battery voltage, V
 
-0x20    | Target position             | RW  | No           | float32_t | Target position, rad
-0x21    | Target speed                | RW  | No           | float32_t | Target speed, rad/s
-0x22    | Target quadrature current   | RW  | No           | float32_t | Target quadrature current, A
+0x20    | Target position             | RW  | No           | float32_t | Target position, rad - also enter position mode
+0x21    | Target speed                | RW  | No           | float32_t | Target speed, rad/s - also enter velocity mode
+0x22    | Target quadrature current   | RW  | No           | float32_t | Target quadrature current, A - also enter current mode
 
 0x30    | Raw encoder position        | RO  | No           | uint16_t | Raw encoder position, ticks
 0x31    | Encoder orientation         | RW  | Yes          | uint8_t  | Encoder orientation with respect to motor

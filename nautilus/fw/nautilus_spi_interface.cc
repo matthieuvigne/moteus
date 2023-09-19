@@ -117,8 +117,9 @@ uint32_t nautilus::processReadCommand(uint8_t const& registerAddress)
     case SPIRegister::targetVelocity:       return fToUInt(command->velocity);
     case SPIRegister::targetIQ:             return 0;
     case SPIRegister::rawEncoderPos:        return bldc->motor_position().sources[0].raw;
-    case SPIRegister::encoderOrientation:   return 0;
-    case SPIRegister::commutationOffset:    return 0;
+    case SPIRegister::encoderOrientation:   return bldc->motor()->phase_invert;
+    case SPIRegister::commutationOffset:    return fToUInt(bldc->motor()->offset[0]);
+    case SPIRegister::nbrOfPoles:           return bldc->motor()->poles;
     case SPIRegister::currentLoopKp:        return fToUInt(bldc->config().pid_dq.kp);
     case SPIRegister::currentLoopKI:        return fToUInt(bldc->config().pid_dq.ki);
     case SPIRegister::currentLoopIntMax:    return 0;   // Not available, this loop has no anti-windup term.
@@ -141,6 +142,14 @@ void nautilus::processWriteCommand(uint8_t const& registerAddress, uint32_t cons
     if (registerAddress == SPIRegister::targetVelocity)
     {
         command->velocity = UIntToF(registerValue);
+    }
+    else if (registerAddress == SPIRegister::encoderOrientation)
+    {
+        bldc->motor()->phase_invert = registerValue & 0xFF;
+    }
+    else if (registerAddress == SPIRegister::commutationOffset)
+    {
+        // command->velocity = UIntToF(registerValue);
     }
 }
 
@@ -169,6 +178,27 @@ void SPI3_IRQHandler(void)
             {
                 uint32_t const regValue = (rxBuffer[2] << 24) + (rxBuffer[3] << 16) + (rxBuffer[4] << 8) + rxBuffer[5];
                 processWriteCommand(rxBuffer[1], regValue);
+            }
+            else if (rxBuffer[0] == static_cast<uint8_t>(SPICommand::commutation))
+            {
+                command->mode = moteus::kVoltageFoc;
+
+                union result{
+                    float f;
+                    uint32_t i;
+                };
+                uint32_t const theta = ((rxBuffer[1] << 24) + (rxBuffer[2] << 16) + (rxBuffer[3] << 8) + (rxBuffer[4]));
+                command->theta = UIntToF(theta);
+                command->theta_rate = 0;
+                uint16_t const voltageRatio = (rxBuffer[5] << 8) + rxBuffer[6];
+                command->voltage = (static_cast<float_t>(voltageRatio) / 65535.0f) * bldc->status().bus_V;
+
+                bldc->Command(*command);
+            }
+            else if (rxBuffer[0] == static_cast<uint8_t>(SPICommand::stop))
+            {
+                command->mode = moteus::kStopped;
+                bldc->Command(*command);
             }
         }
         // Clear buffer state to avoid a loop.

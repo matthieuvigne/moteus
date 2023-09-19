@@ -2177,8 +2177,9 @@ class BldcServo::Impl {
   AuxPort* const aux2_port_;
   MotorPosition* const motor_position_;
 
-
+public:
   Motor& motor_ = *motor_position_->motor();
+private:
   const MotorPosition::Status& position_ = motor_position_->status();
   Config config_;
   PositionConfig position_config_;
@@ -2360,6 +2361,11 @@ void BldcServo::SetOutputPosition(float position) {
 
 void BldcServo::RequireReindex() {
   impl_->RequireReindex();
+}
+
+
+BldcServoMotor* BldcServo::motor() {
+  return &impl_->motor_;
 }
 
 }

@@ -147,6 +147,7 @@ class BldcServo {
   void SetOutputPositionNearest(float position);
   void SetOutputPosition(float position);
   void RequireReindex();
+  BldcServoMotor* motor();
 
  private:
   class Impl;

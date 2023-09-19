@@ -38,6 +38,7 @@ enum SPIRegister {
     rawEncoderPos      = 0x30,       // uint16_t
     encoderOrientation = 0x31,       // uint8_t
     commutationOffset  = 0x32,       // uint16_t
+    nbrOfPoles         = 0x33,       // uint16_t
 
     currentLoopKp      = 0x40,       // float32_t
     currentLoopKI      = 0x41,       // float32_t
@@ -56,6 +57,8 @@ enum SPIRegister {
 enum SPICommand {
     regWrite = 0x01,
     regRead  = 0x02,
+    commutation  = 0x03,
+    stop  = 0x05,
 };
 
 // Answer read query, return the 4 bytes to send.
