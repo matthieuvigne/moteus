@@ -6,8 +6,8 @@ void performCommutation(nautilus::Nautilus *nautilus, double const& targetCurren
 {
 
     std::cout << "Performing commutation, target current: " << targetCurrent << std::endl;
-    nautilus->writeRegister(nautilus::encoderOrientation, static_cast<uint32_t>(0));
-    nautilus->writeRegister(nautilus::commutationOffset, static_cast<uint32_t>(0));
+    nautilus->writeRegister(nautilus::Register::encoderOrientation, static_cast<uint32_t>(0));
+    nautilus->writeRegister(nautilus::Register::commutationOffset, static_cast<uint32_t>(0));
     nautilus->commutation(0.0, 0.50);
     usleep(2000000);
     nautilus->stop();

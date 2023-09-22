@@ -58,7 +58,7 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
     sizeGroups_[1]->add_widget(auxiliaryPosLabel_);
 
     int i = 1;
-    for (auto reg: nautilus::allRegisters)
+    for (auto reg: nautilus::registerList)
     {
         Gtk::Label *name = new Gtk::Label(reg.name);
         grid_.attach(*name, 0, i, 1, 1);
@@ -70,7 +70,7 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
 
         if (reg.isWritable)
         {
-            updateEntries_.push_back(std::pair<nautilus::NautilusRegister, Gtk::SpinButton>(reg, Gtk::SpinButton()));
+            updateEntries_.push_back(std::pair<nautilus::GUIRegister, Gtk::SpinButton>(reg, Gtk::SpinButton()));
 
             updateEntries_.back().second.set_numeric(true);
             if (reg.isFloat)
@@ -129,9 +129,9 @@ bool NautilusGUI::updateReadings()
 {
     for (unsigned int i = 0; i < registerValues_.size(); i++)
     {
-        nautilus::NautilusReply rep = nautilus_->readRegister(nautilus::allRegisters[i]);
+        nautilus::NautilusReply rep = nautilus_->readRegister(nautilus::registerList[i].address);
         if (rep.isValid)
-            registerValues_[i].set_text(nautilus::allRegisters[i].isFloat ? std::to_string(rep.data) : std::to_string(reinterpret_cast<uint32_t &>(rep.data)));
+            registerValues_[i].set_text(nautilus::registerList[i].isFloat ? std::to_string(rep.data) : std::to_string(reinterpret_cast<uint32_t &>(rep.data)));
         else
             registerValues_[i].set_text("Read fail!");
         if (i == 0)
@@ -230,9 +230,9 @@ bool NautilusGUI::checkAsyncStatus()
 void NautilusGUI::writeRegister(int const& index)
 {
     if (updateEntries_[index].first.isFloat)
-        nautilus_->writeRegister(updateEntries_[index].first, static_cast<float>(updateEntries_[index].second.get_value()));
+        nautilus_->writeRegister(updateEntries_[index].first.address, static_cast<float>(updateEntries_[index].second.get_value()));
     else
-        nautilus_->writeRegister(updateEntries_[index].first, static_cast<uint32_t>(updateEntries_[index].second.get_value()));
+        nautilus_->writeRegister(updateEntries_[index].first.address, static_cast<uint32_t>(updateEntries_[index].second.get_value()));
     updateReadings();
 }
 

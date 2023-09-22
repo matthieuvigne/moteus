@@ -76,21 +76,21 @@ Nautilus::Nautilus(std::string const& portName, int const& frequency):
 }
 
 
-NautilusReply Nautilus::readRegister(NautilusRegister const& reg)
+NautilusReply Nautilus::readRegister(Register const& reg)
 {
-    return spiComm(Command::regRead, reg.address, 0);
+    return spiComm(Command::regRead, static_cast<uint8_t>(reg), 0);
 }
 
 
-bool Nautilus::writeRegister(NautilusRegister const& reg, float const& value)
+bool Nautilus::writeRegister(Register const& reg, float const& value)
 {
-    spiComm(Command::regWrite, reg.address, reinterpret_cast<uint32_t const &>(value));
+    spiComm(Command::regWrite, static_cast<uint8_t>(reg), reinterpret_cast<uint32_t const &>(value));
     return true;
 }
 
-bool Nautilus::writeRegister(NautilusRegister const& reg, uint32_t const& value)
+bool Nautilus::writeRegister(Register const& reg, uint32_t const& value)
 {
-    spiComm(Command::regWrite, reg.address, value);
+    spiComm(Command::regWrite, static_cast<uint8_t>(reg), value);
     return true;
 }
 

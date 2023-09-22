@@ -43,7 +43,7 @@ class NautilusGUI : public Gtk::Window
         std::vector<Gtk::Label> registerValues_;
         Gtk::Label auxiliaryPosLabel_;
 
-        std::vector<std::pair<nautilus::NautilusRegister, Gtk::SpinButton>> updateEntries_;
+        std::vector<std::pair<nautilus::GUIRegister, Gtk::SpinButton>> updateEntries_;
 
         std::vector<int> servoIds_;
 
