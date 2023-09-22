@@ -25,8 +25,10 @@ namespace nautilus
     };
 
     static NautilusRegister currentMode             = NautilusRegister(0x00, "Current mode",        false, false);
-
     static NautilusRegister faultCode               = NautilusRegister(0x01, "Fault code",          false, false);       // uint32_t
+    static NautilusRegister drvStatus               = NautilusRegister(0x02, "DRV status",          false, false);       // uint32_t
+    static NautilusRegister drvConfigError          = NautilusRegister(0x03, "DRV config error",    false, false);       // uint32_t
+
     static NautilusRegister measuredPosition        = NautilusRegister(0x10, "Measured position",   true, false);       // float32_t
     static NautilusRegister measuredVelocity        = NautilusRegister(0x11, "Measured velocity",   true, false);       // float32_t
     static NautilusRegister measuredIQ              = NautilusRegister(0x12, "Measured Iq",         true, false);       // float32_t
@@ -63,6 +65,7 @@ namespace nautilus
     static NautilusRegister allRegisters[] = {
         currentMode,
         faultCode,
+        drvStatus,
         measuredPosition,
         measuredVelocity,
         measuredIQ,

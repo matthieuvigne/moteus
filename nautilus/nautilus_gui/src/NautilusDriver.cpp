@@ -101,7 +101,6 @@ NautilusReply Nautilus::stop()
 
 NautilusReply Nautilus::commutation(float const& theta, float const& voltageRatio)
 {
-    // TODO
     uint8_t buffer[8];
     buffer[0] = Command::commutation;
     uint32_t const th = reinterpret_cast<uint32_t const &>(theta);

@@ -10,6 +10,7 @@
 
 #include "fw/moteus_controller.h"
 #include "fw/bldc_servo.h"
+#include "fw/drv8323.h"
 
 namespace nautilus {
 
@@ -17,6 +18,8 @@ namespace nautilus {
 enum SPIRegister {
     currentMode       = 0x00,       // uint8_t
     faultCode         = 0x01,       // uint32_t
+    drvStatus         = 0x02,       // uint32_t
+    drvConfigError    = 0x03,       // uint32_t
 
     measuredPosition  = 0x10,       // float32_t
     measuredVelocity  = 0x11,       // float32_t
@@ -70,7 +73,8 @@ void processWriteCommand(uint8_t const& registerAddress, uint32_t const& registe
 class NautilusSPIInterface {
  public:
     NautilusSPIInterface(moteus::BldcServo* bldc,
-                         moteus::BldcServo::CommandData* command);
+                         moteus::BldcServo::CommandData* command,
+                         moteus::Drv8323* drv8323);
 
     void setup();
     void poll();

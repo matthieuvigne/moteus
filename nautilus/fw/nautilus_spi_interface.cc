@@ -16,6 +16,7 @@ uint8_t posInMessage = 0;   // Current position in the message
 
 moteus::BldcServo::CommandData* command;
 moteus::BldcServo* bldc;
+moteus::Drv8323* drv8323;
 
 // SPI3 configuration
 // Slave mode 3
@@ -50,10 +51,12 @@ else
 */
 
 NautilusSPIInterface::NautilusSPIInterface(moteus::BldcServo* bldcIn,
-                                           moteus::BldcServo::CommandData* commandIn)
+                                           moteus::BldcServo::CommandData* commandIn,
+                                           moteus::Drv8323* drv8323In)
 {
     command = commandIn;
     bldc = bldcIn;
+    drv8323 = drv8323In;
 }
 
 void NautilusSPIInterface::poll()
@@ -101,6 +104,8 @@ uint32_t nautilus::processReadCommand(uint8_t const& registerAddress)
     {
     case SPIRegister::currentMode:          return bldc->status().mode;
     case SPIRegister::faultCode:            return static_cast<uint32_t>(bldc->status().fault);
+    case SPIRegister::drvStatus:            return (static_cast<uint32_t>(drv8323->status()->fsr1) << 16) + static_cast<uint32_t>(drv8323->status()->fsr2);
+    case SPIRegister::drvConfigError:       return static_cast<uint32_t>(drv8323->status()->fault_config);
     case SPIRegister::measuredPosition:     return fToUInt(static_cast<float>(bldc->motor_position().sources[0].filtered_value / bldc->motor_position_config()->sources[0].cpr * 2 * M_PI));
     case SPIRegister::measuredVelocity:     return fToUInt(static_cast<float>(bldc->motor_position().sources[0].velocity / bldc->motor_position_config()->sources[0].cpr * 2 * M_PI));
     case SPIRegister::measuredIQ:           return fToUInt(bldc->status().q_A);
