@@ -109,6 +109,7 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
     header = new Gtk::Label("Commutation current (A):");
     hBox->pack_start(*header);
     commutationCurrent_.set_range(0.1, 20.0);
+    commutationCurrent_.set_value(1.0);
     commutationCurrent_.set_increments(0.1, 1);
     commutationCurrent_.set_digits(2);
     commutationCurrent_.set_width_chars(4);
@@ -118,6 +119,24 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
     commutationButton_ = Gtk::Button("Perform commutation");
     vBox->pack_start(commutationButton_);
     commutationButton_.signal_clicked().connect(sigc::mem_fun(this, &NautilusGUI::startCommutation));
+
+
+    hBox = new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL);
+    hBox->set_spacing(10);
+    header = new Gtk::Label("Motion current (A):");
+    hBox->pack_start(*header);
+    motionAmplitude_.set_range(0.1, 20.0);
+    motionAmplitude_.set_value(1.0);
+    motionAmplitude_.set_increments(0.1, 1);
+    motionAmplitude_.set_digits(2);
+    motionAmplitude_.set_width_chars(4);
+    hBox->pack_start(motionAmplitude_);
+    vBox->pack_start(*hBox);
+
+    motionButton_ = Gtk::Button("Move");
+    vBox->pack_start(motionButton_);
+    motionButton_.signal_clicked().connect(sigc::mem_fun(this, &NautilusGUI::motionClicked));
+
 
     Glib::signal_timeout().connect(sigc::mem_fun(*this, &NautilusGUI::updateReadings), 100);
     Glib::signal_timeout().connect(sigc::mem_fun(*this, &NautilusGUI::checkAsyncStatus), 50);
@@ -148,7 +167,7 @@ bool NautilusGUI::updateReadings()
 void NautilusGUI::startCommutation()
 {
     commutationButton_.set_sensitive(false);
-
+    motionButton_.set_sensitive(false);
 
     commutationDone_ = false;
     std::thread th = std::thread(performCommutation, nautilus_, commutationCurrent_.get_value(), &commutationDone_);
@@ -162,9 +181,16 @@ bool NautilusGUI::checkAsyncStatus()
     {
         std::cout << "Commutation done..." << std::endl;
         commutationButton_.set_sensitive(true);
+        motionButton_.set_sensitive(true);
         commutationDone_ = false;
     }
     return true;
+}
+
+
+void NautilusGUI::motionClicked()
+{
+    // TODO
 }
 
 

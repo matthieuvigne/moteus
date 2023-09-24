@@ -36,6 +36,8 @@ class NautilusGUI : public Gtk::Window
 
         void startCommutation();
 
+        void motionClicked();
+
 
         nautilus::Nautilus* nautilus_;
 
@@ -65,6 +67,11 @@ class NautilusGUI : public Gtk::Window
 
         Gtk::Button commutationButton_;
         Gtk::SpinButton commutationCurrent_;
+
+
+        Gtk::Button motionButton_;
+        Gtk::SpinButton motionAmplitude_;
+
         bool commutationDone_;
 };
 
