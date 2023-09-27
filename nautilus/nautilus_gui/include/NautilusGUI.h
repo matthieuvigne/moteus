@@ -10,6 +10,20 @@
 
 #include "NautilusDriver.h"
 
+
+enum class ControlMode{
+    POSITION = 0,
+    VELOCITY = 1,
+    CURRENT = 2
+};
+static std::vector<std::string> CONTROL_MODES({"Position", "Velocity", "Current"});
+
+enum class SignalType{
+    SINUSOID = 0,
+    CONSTANT = 1
+};
+static std::vector<std::string> SIGNAL_TYPES({"Sinus", "Constant"});
+
 class NautilusGUI : public Gtk::Window
 {
     public:
@@ -70,9 +84,18 @@ class NautilusGUI : public Gtk::Window
 
 
         Gtk::Button motionButton_;
-        Gtk::SpinButton motionAmplitude_;
 
-        bool commutationDone_;
+        Gtk::ComboBoxText motionType_;
+
+        Gtk::ComboBoxText signalType_;
+        Gtk::SpinButton motionAmplitude_;
+        Gtk::SpinButton motionFrequency_;
+
+        bool needToPerformCommutation_{false};
+        bool commutationDone_{false};
+        bool isRunning_{false};
+
+        void backgroundThread();
 };
 
 #endif

@@ -1,6 +1,9 @@
 #include "NautilusGUI.h"
 #include "Commutation.h"
+#include "Teleplot.h"
+
 #include <iostream>
+#include <time.h>
 
 
 NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
@@ -33,9 +36,8 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
     topGrid->attach(*sep, 3, 0, 1, 1);
     sep->set_halign(Gtk::ALIGN_START);
 
-    header = new Gtk::Label("Commands");
-    header->set_hexpand(true);
-    topGrid->attach(*header, 4, 0, 1, 1);
+    commStats_.set_hexpand(true);
+    topGrid->attach(commStats_, 4, 0, 1, 1);
 
     topGrid->attach(scroll_, 0, 1, 5, 1);
 
@@ -101,8 +103,6 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
     vBox->set_halign(Gtk::ALIGN_CENTER);
     vBox->set_hexpand(true);
     grid_.attach(*vBox, 4, 0, 1, i);
-    vBox->pack_start(commStats_);
-
 
     Gtk::Box *hBox = new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL);
     hBox->set_spacing(10);
@@ -120,12 +120,47 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
     vBox->pack_start(commutationButton_);
     commutationButton_.signal_clicked().connect(sigc::mem_fun(this, &NautilusGUI::startCommutation));
 
+    sep = new Gtk::Separator(Gtk::ORIENTATION_HORIZONTAL);
+    vBox->pack_start(*sep);
+
 
     hBox = new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL);
     hBox->set_spacing(10);
-    header = new Gtk::Label("Motion current (A):");
+    header = new Gtk::Label("Control type:");
     hBox->pack_start(*header);
-    motionAmplitude_.set_range(0.1, 20.0);
+    for (std::string s : CONTROL_MODES)
+        motionType_.append(s);
+    motionType_.set_active_text(CONTROL_MODES.at(0));
+    hBox->pack_start(motionType_);
+    vBox->pack_start(*hBox);
+
+
+    hBox = new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL);
+    hBox->set_spacing(10);
+    header = new Gtk::Label("Signal type:");
+    hBox->pack_start(*header);
+    for (std::string s : SIGNAL_TYPES)
+        signalType_.append(s);
+    signalType_.set_active_text(SIGNAL_TYPES.at(0));
+    hBox->pack_start(signalType_);
+    vBox->pack_start(*hBox);
+
+    hBox = new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL);
+    hBox->set_spacing(10);
+    header = new Gtk::Label("Signal frequency:");
+    hBox->pack_start(*header);
+    motionFrequency_.set_range(0.01, 200.0);
+    motionFrequency_.set_value(1.0);
+    motionFrequency_.set_increments(0.1, 1);
+    motionFrequency_.set_digits(2);
+    motionFrequency_.set_width_chars(4);
+    hBox->pack_start(motionFrequency_);
+    vBox->pack_start(*hBox);
+
+    hBox = new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL);
+    header = new Gtk::Label("Signal amplitude:");
+    hBox->pack_start(*header);
+    motionAmplitude_.set_range(0.01, 200.0);
     motionAmplitude_.set_value(1.0);
     motionAmplitude_.set_increments(0.1, 1);
     motionAmplitude_.set_digits(2);
@@ -133,13 +168,19 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
     hBox->pack_start(motionAmplitude_);
     vBox->pack_start(*hBox);
 
-    motionButton_ = Gtk::Button("Move");
+    motionButton_ = Gtk::Button("Start");
+    isRunning_ = false;
     vBox->pack_start(motionButton_);
     motionButton_.signal_clicked().connect(sigc::mem_fun(this, &NautilusGUI::motionClicked));
 
 
     Glib::signal_timeout().connect(sigc::mem_fun(*this, &NautilusGUI::updateReadings), 100);
     Glib::signal_timeout().connect(sigc::mem_fun(*this, &NautilusGUI::checkAsyncStatus), 50);
+
+
+    std::thread th = std::thread(&NautilusGUI::backgroundThread, this);
+    th.detach();
+
     show_all();
 }
 
@@ -169,14 +210,13 @@ void NautilusGUI::startCommutation()
     commutationButton_.set_sensitive(false);
     motionButton_.set_sensitive(false);
 
+    isRunning_ = false;
+    needToPerformCommutation_ = true;
     commutationDone_ = false;
-    std::thread th = std::thread(performCommutation, nautilus_, commutationCurrent_.get_value(), &commutationDone_);
-    th.detach();
 }
 
 bool NautilusGUI::checkAsyncStatus()
 {
-    using namespace std::chrono_literals;
     if (commutationDone_)
     {
         std::cout << "Commutation done..." << std::endl;
@@ -190,68 +230,10 @@ bool NautilusGUI::checkAsyncStatus()
 
 void NautilusGUI::motionClicked()
 {
-    // TODO
+    isRunning_ = !isRunning_;
+    motionButton_.set_label(isRunning_ ? "Stop" : "Start");
+    commutationButton_.set_sensitive(!isRunning_);
 }
-
-
-// void MainWindow::updateId(int const& servoNumber)
-// {
-//     // driver_->setTargetPosition(servoIds_[servoNumber], targetPositions_[servoNumber].get_value_as_int());
-//     Gtk::Dialog dialog("ChangeId", *this);
-
-//     dialog.add_button("Cancel", -1);
-//     dialog.add_button("Change Id", 1);
-
-//     Gtk::Box* box = dialog.get_content_area();
-//     box->set_margin_start(10);
-//     box->set_margin_end(10);
-//     box->set_margin_left(10);
-//     box->set_margin_right(10);
-//     box->set_spacing(10);
-//     Gtk::Label text("Set new id:");
-//     box->pack_start(text);
-
-//     Gtk::SpinButton button;
-//     button.set_numeric(true);
-//     button.set_range(0, 253);
-//     button.set_increments(1, 10);
-//     button.set_width_chars(4);
-//     box->pack_start(button);
-//     box->show_all();
-
-//     int const responseId = dialog.run();
-//     if (responseId > 0)
-//     {
-//         int const newId = button.get_value_as_int();
-//         bool const wasIdChanged = driver_->setId(servoIds_[servoNumber], newId);
-//         if (wasIdChanged)
-//         {
-//             servoIds_[servoNumber] = newId;
-//             servoNames_[servoNumber].set_text(std::to_string(newId));
-//         }
-//     }
-
-// }
-
-
-// void MainWindow::resetPosition(int const& servoNumber)
-// {
-//     driver_->resetPositionAsCenter(servoIds_[servoNumber]);
-// }
-
-
-// void MainWindow::updateEnable(int const& servoNumber)
-// {
-//     if (torqueEnabled_[servoNumber].get_active())
-//     {
-//         targetPositions_[servoNumber].set_value(driver_->getCurrentPosition(servoIds_[servoNumber]));
-//         targetVelocities_[servoNumber].set_value(0);
-//         updateTargetPosition(servoNumber);
-//         updateTargetVelocity(servoNumber);
-//     }
-//     driver_->disable(servoIds_[servoNumber], !torqueEnabled_[servoNumber].get_active());
-// }
-
 
 void NautilusGUI::writeRegister(int const& index)
 {
@@ -263,33 +245,67 @@ void NautilusGUI::writeRegister(int const& index)
 }
 
 
-// void MainWindow::updateTargetVelocity(int const& servoNumber)
-// {
-//     if (torqueEnabled_[servoNumber].get_active())
-//         driver_->setTargetVelocity(servoIds_[servoNumber], targetVelocities_[servoNumber].get_value_as_int());
-// }
+void NautilusGUI::backgroundThread()
+{
+    while (true)
+    {
+        // Wait for running state
+        while (!isRunning_ && !needToPerformCommutation_)
+            usleep(1000);
+
+        if (needToPerformCommutation_)
+        {
+            performCommutation(nautilus_, commutationCurrent_.get_value());
+            needToPerformCommutation_ = false;
+            commutationDone_ = true;
+        }
+        else
+        {
+            // Gather parameters from GUI.
+            std::string const& sMode = motionType_.get_active_text();
+            ControlMode controlMode;
+            for (uint i = 0; i < CONTROL_MODES.size(); i++)
+                if (CONTROL_MODES.at(i) == sMode)
+                {
+                    controlMode = static_cast<ControlMode>(i);
+                    break;
+                }
 
 
-// void MainWindow::updateControlMode(int const& servoNumber)
-// {
-//     Glib::ustring const mode = controlModes_[servoNumber].get_active_text();
-//     if (mode == "Position")
-//     {
-//         driver_->setMode(servoIds_[servoNumber], STS::Mode::POSITION);
-//         usleep(5000);
-//         targetPositions_[servoNumber].set_value(driver_->getCurrentPosition(servoIds_[servoNumber]));
-//         updateTargetPosition(servoNumber);
-//     }
-//     else if (mode == "Velocity")
-//     {
-//         targetVelocities_[servoNumber].set_value(0);
-//         updateTargetVelocity(servoNumber);
-//         driver_->setMode(servoIds_[servoNumber], STS::Mode::VELOCITY);
-//     }
-//     else
-//     {
-//         targetPositions_[servoNumber].set_value(0);
-//         updateTargetPosition(servoNumber);
-//         driver_->setMode(servoIds_[servoNumber], STS::Mode::STEP);
-//     }
-// }
+            std::string const& sType = signalType_.get_active_text();
+            SignalType signal;
+            for (uint i = 0; i < SIGNAL_TYPES.size(); i++)
+                if (SIGNAL_TYPES.at(i) == sType)
+                {
+                    signal = static_cast<SignalType>(i);
+                    break;
+                }
+
+            double amplitude = motionAmplitude_.get_value();
+            double frequency = motionFrequency_.get_value();
+
+            struct timespec startTime, currentTime;
+            clock_gettime(CLOCK_MONOTONIC, &startTime);
+            while (isRunning_)
+            {
+                clock_gettime(CLOCK_MONOTONIC, &currentTime);
+                double elapsedTime = currentTime.tv_sec - startTime.tv_sec + (currentTime.tv_nsec - startTime.tv_nsec) / 1.0e9;
+
+                float target = 0.0;
+                switch(signal)
+                {
+                    case SignalType::SINUSOID:
+                        target = amplitude * std::sin(2 * M_PI * frequency * elapsedTime);
+                        break;
+                    case SignalType::CONSTANT:
+                        target = amplitude;
+                        break;
+                    default: break;
+                }
+
+                Teleplot::localhost().update("target", target);
+                usleep(1000);
+            }
+        }
+    }
+}

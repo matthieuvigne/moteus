@@ -47,7 +47,7 @@ std::vector<float> getAverageRegisters(nautilus::Nautilus *nautilus,
 }
 
 
-void performCommutation(nautilus::Nautilus *nautilus, double const& targetCurrent, bool* done)
+void performCommutation(nautilus::Nautilus *nautilus, double const& targetCurrent)
 {
 
     std::cout << "Performing commutation, target current: " << targetCurrent << std::endl;
@@ -74,7 +74,6 @@ void performCommutation(nautilus::Nautilus *nautilus, double const& targetCurren
     {
         std::cout << "Error determining motor resistance." << std::endl;
         nautilus->stop();
-        *done = true;
         return;
     }
     else
@@ -123,14 +122,5 @@ void performCommutation(nautilus::Nautilus *nautilus, double const& targetCurren
     nautilus->writeRegister(nautilus::Register::commutationOffset, encoderZero);
 
 
-    // for (int i = 0; i < 10; i++)
-    // {
-    //     nautilus->commutation(0.0, voltageRatio);
-    //     usleep(300000);
-    //     nautilus->commutation(2.0, voltageRatio);
-    //     usleep(300000);
-    // }
-
     nautilus->stop();
-    *done = true;
 }

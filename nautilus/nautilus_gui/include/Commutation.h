@@ -8,6 +8,6 @@
 
 /// @brief Perform encoder commutation, this is meant to run in a separate thread
 /// @param nautilus Nautilus controller
-void performCommutation(nautilus::Nautilus *nautilus, double const& targetCurrent, bool* done);
+void performCommutation(nautilus::Nautilus *nautilus, double const& targetCurrent);
 
 #endif
