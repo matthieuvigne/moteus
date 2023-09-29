@@ -365,7 +365,8 @@ struct BldcServoCommandData {
 
 struct BldcServoMotor {
   // Hard-code number of poles for RMDXV2 actuator.
-  uint8_t poles = 28;
+  // uint8_t poles = 28;
+  uint8_t poles = 42;
 
   // Invert the order of phase movement.
   uint8_t phase_invert = 0;
@@ -533,7 +534,7 @@ struct BldcServoConfig {
   float flux_brake_resistance_ohm = 0.025f;
 
   float max_current_A = 10.0f;
-  float derate_current_A = -20.0f;
+  float derate_current_A = 5.0f;
 
   // When the maximum velocity exceeds this value, a current limit
   // will begin to be applied.  When it reaches max_velocity +
@@ -617,8 +618,8 @@ struct BldcServoConfig {
 // separate to minimize resets due to schemas changing during
 // development.
 struct BldcServoPositionConfig {
-  float position_min = -0.01f;
-  float position_max = 0.01f;
+  float position_min = NAN;
+  float position_max = NAN;
 
   template <typename Archive>
   void Serialize(Archive* a) {

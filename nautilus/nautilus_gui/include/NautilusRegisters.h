@@ -91,7 +91,7 @@ namespace nautilus
 
         GUIRegister(Register::rawEncoderPos, "Raw position",        false, false),
         GUIRegister(Register::encoderOrientation, "Encoder orientation", false, true),
-        GUIRegister(Register::commutationOffset, "Commutation offset",  false, true),
+        GUIRegister(Register::commutationOffset, "Commutation offset",  true, true),
         GUIRegister(Register::nbrOfPoles, "Number of poles",     false, false),
 
         GUIRegister(Register::currentLoopKp, "Current loop Kp", true, true),
@@ -103,7 +103,7 @@ namespace nautilus
         GUIRegister(Register::motorMaxCurrent, "Motor max current", true, true),
         GUIRegister(Register::motorMaxTemperature, "Motor max temperature", true, true),
         GUIRegister(Register::driverMaxTemperature, "Driver max temperature", true, true),
-        GUIRegister(Register::commTimeout, "Communication timeout", true, true),
+        GUIRegister(Register::commTimeout, "Communication timeout ms", false, true),
     });
 
 

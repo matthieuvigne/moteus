@@ -78,14 +78,14 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
             if (reg.isFloat)
             {
                 updateEntries_.back().second.set_range(-10000000, 10000000);
-                updateEntries_.back().second.set_digits(3);
+                updateEntries_.back().second.set_digits(5);
             }
             else
             {
                 updateEntries_.back().second.set_range(-32766, 32766);
                 updateEntries_.back().second.set_digits(0);
             }
-            updateEntries_.back().second.set_width_chars(6);
+            updateEntries_.back().second.set_width_chars(7);
             updateEntries_.back().second.set_increments(1, 10);
             updateEntries_.back().second.signal_value_changed().connect(sigc::bind(sigc::mem_fun(this, &NautilusGUI::writeRegister), updateEntries_.size() - 1));
             grid_.attach(updateEntries_.back().second, 2, i, 1, 1);
@@ -158,6 +158,18 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
     vBox->pack_start(*hBox);
 
     hBox = new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL);
+    hBox->set_spacing(10);
+    header = new Gtk::Label("Signal offset:");
+    hBox->pack_start(*header);
+    motionOffset_.set_range(0.01, 200.0);
+    motionOffset_.set_value(1.0);
+    motionOffset_.set_increments(0.1, 1);
+    motionOffset_.set_digits(2);
+    motionOffset_.set_width_chars(4);
+    hBox->pack_start(motionOffset_);
+    vBox->pack_start(*hBox);
+
+    hBox = new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL);
     header = new Gtk::Label("Signal amplitude:");
     hBox->pack_start(*header);
     motionAmplitude_.set_range(0.01, 200.0);
@@ -187,9 +199,14 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
 
 bool NautilusGUI::updateReadings()
 {
+    // Don't query drive while running
+    if (isRunning_)
+        return true;
+
     for (unsigned int i = 0; i < registerValues_.size(); i++)
     {
         nautilus::NautilusReply rep = nautilus_->readRegister(nautilus::registerList[i].address);
+
         if (rep.isValid)
             registerValues_[i].set_text(nautilus::registerList[i].isFloat ? std::to_string(rep.data) : std::to_string(reinterpret_cast<uint32_t &>(rep.data)));
         else
@@ -283,6 +300,7 @@ void NautilusGUI::backgroundThread()
 
             double amplitude = motionAmplitude_.get_value();
             double frequency = motionFrequency_.get_value();
+            double offset = motionOffset_.get_value();
 
             struct timespec startTime, currentTime;
             clock_gettime(CLOCK_MONOTONIC, &startTime);
@@ -295,17 +313,35 @@ void NautilusGUI::backgroundThread()
                 switch(signal)
                 {
                     case SignalType::SINUSOID:
-                        target = amplitude * std::sin(2 * M_PI * frequency * elapsedTime);
+                        target = amplitude * std::sin(2 * M_PI * frequency * elapsedTime) + offset;
                         break;
                     case SignalType::CONSTANT:
-                        target = amplitude;
+                        target = offset;
                         break;
                     default: break;
                 }
 
+                switch(controlMode)
+                {
+                    case ControlMode::CURRENT: nautilus_->writeRegister(nautilus::Register::targetIQ, target);
+                    case ControlMode::VELOCITY: nautilus_->writeRegister(nautilus::Register::targetVelocity, target);
+                    case ControlMode::POSITION: nautilus_->writeRegister(nautilus::Register::targetPosition, static_cast<float>(target / 2 / M_PI));
+                    default: break;
+                }
+
                 Teleplot::localhost().update("target", target);
-                usleep(1000);
+                nautilus::NautilusReply rep = nautilus_->readRegister(nautilus::Register::measuredIQ);
+                if (rep.isValid)
+                    Teleplot::localhost().update("current", rep.data);
+                rep = nautilus_->readRegister(nautilus::Register::measuredPosition);
+                if (rep.isValid)
+                    Teleplot::localhost().update("position", rep.data);
+                rep = nautilus_->readRegister(nautilus::Register::measuredVelocity);
+                if (rep.isValid)
+                    Teleplot::localhost().update("velocity", rep.data);
+                usleep(5000);
             }
+            nautilus_->stop();
         }
     }
 }

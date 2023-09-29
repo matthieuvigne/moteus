@@ -6,6 +6,7 @@
     #include <unistd.h>
     #include <linux/spi/spidev.h>
     #include <string>
+    #include <mutex>
 
     #include "NautilusRegisters.h"
 
@@ -17,7 +18,7 @@ namespace nautilus
         bool validEncoder = false;
         uint8_t mode = 0;
         float data;
-        bool isValid = true;
+        bool isValid = false;
     };
 
     enum Command {
@@ -63,6 +64,7 @@ namespace nautilus
 
             std::string portName_;  ///< Name of the SPI port
             int frequency_; ///< Frequency, in Hz.
+            std::mutex mutex_;
     };
 }
 #endif

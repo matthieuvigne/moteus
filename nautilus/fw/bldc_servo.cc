@@ -430,7 +430,7 @@ class BldcServo::Impl {
   }
 
   const Status& status() const { return status_; }
-  const Config& config() const { return config_; }
+  Config& config() { return config_; }
   const Control& control() const { return control_; }
   const AuxPort::Status& aux1() const { return *aux1_port_->status(); }
   const AuxPort::Status& aux2() const { return *aux2_port_->status(); }
@@ -2323,7 +2323,7 @@ const BldcServo::Status& BldcServo::status() const {
   return impl_->status();
 }
 
-const BldcServo::Config& BldcServo::config() const {
+BldcServo::Config& BldcServo::config() {
   return impl_->config();
 }
 

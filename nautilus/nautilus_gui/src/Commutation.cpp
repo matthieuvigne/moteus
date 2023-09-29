@@ -81,9 +81,10 @@ void performCommutation(nautilus::Nautilus *nautilus, double const& targetCurren
         std::cout << "Identified motor resistance:" << std::setprecision(3) << res << std::endl;
     }
 
-    // Move to zero position
-    nautilus->commutation(0.0, voltageRatio);
+    nautilus->commutation(0.2, voltageRatio);
     usleep(500000);
+    nautilus->commutation(0.0, voltageRatio);
+    usleep(100000);
 
     results = getAverageRegisters(nautilus, rVector({nautilus::Register::rawEncoderPos, nautilus::Register::measuredPosition}), 20, 500, std::vector<bool>({true, false}));
 
@@ -92,8 +93,13 @@ void performCommutation(nautilus::Nautilus *nautilus, double const& targetCurren
     std::cout << "Encoder zero position:" << zeroPos << "(" << encoderZero << ")" << std::endl;
 
     // Rotate by 90 electrical degree and check that the result makes sense.
+    for (int i = 0; i < 10; i++)
+    {
+        nautilus->commutation(M_PI_2 * i / 10.0, voltageRatio);
+        usleep(20000);
+    }
     nautilus->commutation(M_PI_2, voltageRatio);
-    usleep(500000);
+    usleep(20000);
     results = getAverageRegisters(nautilus, rVector({nautilus::Register::measuredPosition}), 20, 500);
     float orthogonalPos = results.at(0);
     std::cout << "Encoder 90deg position:" << orthogonalPos << std::endl;
@@ -115,12 +121,27 @@ void performCommutation(nautilus::Nautilus *nautilus, double const& targetCurren
     std::cout << "Number of poles: " << 2 * M_PI / std::abs(encoderDelta * 4) << std::endl;
 
     // Compare with internal register setting
-    // TODO
+    uint32_t nPoles = static_cast<uint32_t>(2 * M_PI / std::abs(encoderDelta * 4));
+    nautilus::NautilusReply rep;
+    while (!rep.isValid)
+        rep = nautilus->readRegister(nautilus::Register::nbrOfPoles);
+    uint32_t expectedNPoles = reinterpret_cast<uint32_t &>(rep.data);
+    if (nPoles != expectedNPoles)
+    {
+        std::cout << "Error: motor configured for " << expectedNPoles << " poles but measured " << nPoles << std::endl;
+        nautilus->stop();
+        // return;
+    }
+
+    // Convert zero to electrical angle.
+    float offset = zeroPos * (nPoles / 2);
+    while (offset > 2 * M_PI)
+        offset -= 2 * M_PI;
 
     // Save results
     nautilus->writeRegister(nautilus::Register::encoderOrientation, isInverted);
-    nautilus->writeRegister(nautilus::Register::commutationOffset, encoderZero);
-
+    nautilus->writeRegister(nautilus::Register::commutationOffset, -offset);
+    std::cout << "Computed commutation offset: " << -offset << std::endl;
 
     nautilus->stop();
 }

@@ -90,6 +90,7 @@ class NautilusGUI : public Gtk::Window
         Gtk::ComboBoxText signalType_;
         Gtk::SpinButton motionAmplitude_;
         Gtk::SpinButton motionFrequency_;
+        Gtk::SpinButton motionOffset_;
 
         bool needToPerformCommutation_{false};
         bool commutationDone_{false};

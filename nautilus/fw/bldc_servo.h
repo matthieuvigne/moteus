@@ -136,7 +136,7 @@ class BldcServo {
   void Command(const CommandData&);
 
   const Status& status() const;
-  const Config& config() const;
+  Config& config();
   const Control& control() const;
   const AuxPort::Status& aux1() const;
   const AuxPort::Status& aux2() const;

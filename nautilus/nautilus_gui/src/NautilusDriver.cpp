@@ -131,6 +131,7 @@ NautilusReply Nautilus::spiComm(uint8_t command, uint8_t address, uint32_t data)
 
 NautilusReply Nautilus::spiComm(uint8_t *buffer)
 {
+    mutex_.lock();
     // Compute checksum
     buffer[7] = buffer[0] + buffer[1] + buffer[2] + buffer[3] + buffer[4] + buffer[5] + buffer[6];
 
@@ -166,5 +167,6 @@ NautilusReply Nautilus::spiComm(uint8_t *buffer)
     else
         nFailed++;
 
+    mutex_.unlock();
     return reply;
 }
