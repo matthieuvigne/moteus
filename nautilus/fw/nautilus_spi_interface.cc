@@ -17,6 +17,7 @@ uint8_t posInMessage = 0;   // Current position in the message
 moteus::BldcServo::CommandData* command;
 moteus::BldcServo* bldc;
 moteus::Drv8323* drv8323;
+mjlib::micro::PersistentConfig* persistent_config;
 
 // SPI3 configuration
 // Slave mode 3
@@ -54,11 +55,13 @@ else
 
 NautilusSPIInterface::NautilusSPIInterface(moteus::BldcServo* bldcIn,
                                            moteus::BldcServo::CommandData* commandIn,
-                                           moteus::Drv8323* drv8323In)
+                                           moteus::Drv8323* drv8323In,
+                                           mjlib::micro::PersistentConfig* config)
 {
     command = commandIn;
     bldc = bldcIn;
     drv8323 = drv8323In;
+    persistent_config = config;
 }
 
 void NautilusSPIInterface::poll()
@@ -252,6 +255,13 @@ void SPI3_IRQHandler(void)
                 timeoutCounter = timeoutMs;
                 bldc->Command(*command);
             }
+            else if (rxBuffer[0] == static_cast<uint8_t>(SPICommand::storeToPersistentMemory))
+            {
+                mjlib::micro::CommandManager::Response response;
+                // Note: for this to work, PersistentConfig.Write must be exposed.
+                // TODO FIXME: calling this here cause the uC to hang. But the config is still saved...
+                persistent_config->Write(response);
+            }
             else if (rxBuffer[0] == static_cast<uint8_t>(SPICommand::stop))
             {
                 command->mode = moteus::kStopped;
@@ -343,7 +353,8 @@ void NautilusSPIInterface::setup()
     debug_uart_ = reinterpret_cast<USART_TypeDef*>(uart);
 
     // led1_ = 0;
-    spi_init(&spi_,
+    spi_t spi;
+    spi_init(&spi,
               PB_5_ALT0, // MOSI
               PB_4_ALT0, // MISO
               PB_3_ALT0, // SCK

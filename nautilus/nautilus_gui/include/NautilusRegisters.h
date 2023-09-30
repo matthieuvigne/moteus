@@ -85,9 +85,9 @@ namespace nautilus
         GUIRegister(Register::measuredDriveTemp, "Measured fet temp",   true, false),
         GUIRegister(Register::measuredUBat, "Measured battery voltage",   true, false),
 
-        GUIRegister(Register::targetPosition, "Target position", true, true),
-        GUIRegister(Register::targetVelocity, "Target velocity", true, true),
-        GUIRegister(Register::targetIQ, "Target Iq",       true, true),
+        GUIRegister(Register::targetPosition, "Target position", true, false),  // Can only be written using dedicated interface
+        GUIRegister(Register::targetVelocity, "Target velocity", true, false),  // Can only be written using dedicated interface
+        GUIRegister(Register::targetIQ, "Target Iq",       true, false),        // Can only be written using dedicated interface
 
         GUIRegister(Register::rawEncoderPos, "Raw position",        false, false),
         GUIRegister(Register::encoderOrientation, "Encoder orientation", false, true),

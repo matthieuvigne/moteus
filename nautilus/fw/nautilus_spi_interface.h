@@ -61,6 +61,7 @@ enum SPICommand {
     regWrite = 0x01,
     regRead  = 0x02,
     commutation  = 0x03,
+    storeToPersistentMemory  = 0x04,
     stop  = 0x05,
 };
 
@@ -74,14 +75,11 @@ class NautilusSPIInterface {
  public:
     NautilusSPIInterface(moteus::BldcServo* bldc,
                          moteus::BldcServo::CommandData* command,
-                         moteus::Drv8323* drv8323);
+                         moteus::Drv8323* drv8323,
+                         mjlib::micro::PersistentConfig* config);
 
     void setup();
     void poll();
-
-private:
-    spi_t spi_;
-    SPI_HandleTypeDef hspi_;
 };
 
 }

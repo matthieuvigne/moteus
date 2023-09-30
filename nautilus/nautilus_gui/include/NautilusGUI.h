@@ -84,7 +84,6 @@ class NautilusGUI : public Gtk::Window
 
 
         Gtk::Button motionButton_;
-
         Gtk::ComboBoxText motionType_;
 
         Gtk::ComboBoxText signalType_;

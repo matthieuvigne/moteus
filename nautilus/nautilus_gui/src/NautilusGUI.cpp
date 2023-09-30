@@ -120,6 +120,10 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
     vBox->pack_start(commutationButton_);
     commutationButton_.signal_clicked().connect(sigc::mem_fun(this, &NautilusGUI::startCommutation));
 
+    Gtk::Button *button = new Gtk::Button("Store settings to persistent memory");
+    vBox->pack_start(*button);
+    button->signal_clicked().connect(sigc::mem_fun(nautilus_, &nautilus::Nautilus::storeToPersistentMemory));
+
     sep = new Gtk::Separator(Gtk::ORIENTATION_HORIZONTAL);
     vBox->pack_start(*sep);
 

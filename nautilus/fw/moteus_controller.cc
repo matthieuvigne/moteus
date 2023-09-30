@@ -468,7 +468,7 @@ class MoteusController::Impl : public multiplex::MicroServer::Server {
         clock_manager_(clock_manager),
         system_info_(system_info),
         firmware_(firmware),
-        nautilusSPI_(&bldc_, &command_, &drv8323_)
+        nautilusSPI_(&bldc_, &command_, &drv8323_, persistent_config)
   {}
 
   void Start() {

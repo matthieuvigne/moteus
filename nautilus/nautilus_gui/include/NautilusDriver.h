@@ -25,6 +25,7 @@ namespace nautilus
         regWrite = 0x01,
         regRead  = 0x02,
         commutation  = 0x03,
+        storeToPersistentMemory  = 0x04,
         stop  = 0x05,
     };
 
@@ -38,6 +39,8 @@ namespace nautilus
 
             bool writeRegister(Register const& reg, float const& value);
             bool writeRegister(Register const& reg, uint32_t const& value);
+
+            void storeToPersistentMemory();
 
             /// @brief Stop the motors
             NautilusReply stop();
