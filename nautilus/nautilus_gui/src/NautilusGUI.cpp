@@ -5,6 +5,68 @@
 #include <iostream>
 #include <time.h>
 
+// The background thread, doing motor control
+void backgroundThread(ThreadStatus *status, nautilus::Nautilus *nautilus)
+{
+    while (!status->terminate)
+    {
+        // Wait for running state
+        while (!status->isRunning && !status->needToPerformCommutation && !status->terminate)
+            usleep(1000);
+
+        if (status->needToPerformCommutation)
+        {
+            performCommutation(nautilus, status->commutationCurrent);
+            status->needToPerformCommutation = false;
+            status->commutationDone = true;
+        }
+        else
+        {
+
+            struct timespec startTime, currentTime;
+            clock_gettime(CLOCK_MONOTONIC, &startTime);
+            while (status->isRunning && !status->terminate)
+            {
+                clock_gettime(CLOCK_MONOTONIC, &currentTime);
+                double elapsedTime = currentTime.tv_sec - startTime.tv_sec + (currentTime.tv_nsec - startTime.tv_nsec) / 1.0e9;
+
+                float target = 0.0;
+                switch(status->signalType)
+                {
+                    case SignalType::SINUSOID:
+                        target = status->amplitude * std::sin(2 * M_PI * status->frequency * elapsedTime) + status->offset;
+                        break;
+                    case SignalType::CONSTANT:
+                        target = status->offset;
+                        break;
+                    default: break;
+                }
+
+                switch(status->controlMode)
+                {
+                    case ControlMode::CURRENT: nautilus->writeRegister(nautilus::Register::targetIQ, target);
+                    case ControlMode::VELOCITY: nautilus->writeRegister(nautilus::Register::targetVelocity, target);
+                    case ControlMode::POSITION: nautilus->writeRegister(nautilus::Register::targetPosition, static_cast<float>(target / 2 / M_PI));
+                    default: break;
+                }
+
+                Teleplot::localhost().update("target", target);
+                nautilus::NautilusReply rep = nautilus->readRegister(nautilus::Register::measuredIQ);
+                if (rep.isValid)
+                    Teleplot::localhost().update("current", rep.data);
+                rep = nautilus->readRegister(nautilus::Register::measuredPosition);
+                if (rep.isValid)
+                    Teleplot::localhost().update("position", rep.data);
+                rep = nautilus->readRegister(nautilus::Register::measuredVelocity);
+                if (rep.isValid)
+                    Teleplot::localhost().update("velocity", rep.data);
+                usleep(5000);
+            }
+            nautilus->stop();
+        }
+    }
+}
+
 
 NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
     nautilus_(nautilus)
@@ -185,7 +247,6 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
     vBox->pack_start(*hBox);
 
     motionButton_ = Gtk::Button("Start");
-    isRunning_ = false;
     vBox->pack_start(motionButton_);
     motionButton_.signal_clicked().connect(sigc::mem_fun(this, &NautilusGUI::motionClicked));
 
@@ -194,17 +255,21 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
     Glib::signal_timeout().connect(sigc::mem_fun(*this, &NautilusGUI::checkAsyncStatus), 50);
 
 
-    std::thread th = std::thread(&NautilusGUI::backgroundThread, this);
-    th.detach();
+    bgThread_ = std::thread(backgroundThread, &status_, nautilus_);
 
     show_all();
 }
 
+NautilusGUI::~NautilusGUI()
+{
+    status_.terminate = true;
+    bgThread_.join();
+}
 
 bool NautilusGUI::updateReadings()
 {
     // Don't query drive while running
-    if (isRunning_)
+    if (status_.isRunning)
         return true;
 
     for (unsigned int i = 0; i < registerValues_.size(); i++)
@@ -231,19 +296,21 @@ void NautilusGUI::startCommutation()
     commutationButton_.set_sensitive(false);
     motionButton_.set_sensitive(false);
 
-    isRunning_ = false;
-    needToPerformCommutation_ = true;
-    commutationDone_ = false;
+    status_.isRunning = false;
+    status_.needToPerformCommutation = true;
+    status_.commutationDone = false;
+    status_.commutationCurrent = commutationCurrent_.get_value();
 }
+
 
 bool NautilusGUI::checkAsyncStatus()
 {
-    if (commutationDone_)
+    if (status_.commutationDone)
     {
         std::cout << "Commutation done..." << std::endl;
         commutationButton_.set_sensitive(true);
         motionButton_.set_sensitive(true);
-        commutationDone_ = false;
+        status_.commutationDone = false;
     }
     return true;
 }
@@ -251,9 +318,32 @@ bool NautilusGUI::checkAsyncStatus()
 
 void NautilusGUI::motionClicked()
 {
-    isRunning_ = !isRunning_;
-    motionButton_.set_label(isRunning_ ? "Stop" : "Start");
-    commutationButton_.set_sensitive(!isRunning_);
+    // Preprocess arguments
+    // Gather parameters from GUI.
+    std::string const& sMode = motionType_.get_active_text();
+    for (uint i = 0; i < CONTROL_MODES.size(); i++)
+        if (CONTROL_MODES.at(i) == sMode)
+        {
+            status_.controlMode = static_cast<ControlMode>(i);
+            break;
+        }
+
+
+    std::string const& sType = signalType_.get_active_text();
+    for (uint i = 0; i < SIGNAL_TYPES.size(); i++)
+        if (SIGNAL_TYPES.at(i) == sType)
+        {
+            status_.signalType = static_cast<SignalType>(i);
+            break;
+        }
+
+    status_.amplitude = motionAmplitude_.get_value();
+    status_.frequency = motionFrequency_.get_value();
+    status_.offset = motionOffset_.get_value();
+
+    status_.isRunning = !status_.isRunning;
+    motionButton_.set_label(status_.isRunning ? "Stop" : "Start");
+    commutationButton_.set_sensitive(!status_.isRunning);
 }
 
 void NautilusGUI::writeRegister(int const& index)
@@ -265,87 +355,3 @@ void NautilusGUI::writeRegister(int const& index)
     updateReadings();
 }
 
-
-void NautilusGUI::backgroundThread()
-{
-    while (true)
-    {
-        // Wait for running state
-        while (!isRunning_ && !needToPerformCommutation_)
-            usleep(1000);
-
-        if (needToPerformCommutation_)
-        {
-            performCommutation(nautilus_, commutationCurrent_.get_value());
-            needToPerformCommutation_ = false;
-            commutationDone_ = true;
-        }
-        else
-        {
-            // Gather parameters from GUI.
-            std::string const& sMode = motionType_.get_active_text();
-            ControlMode controlMode;
-            for (uint i = 0; i < CONTROL_MODES.size(); i++)
-                if (CONTROL_MODES.at(i) == sMode)
-                {
-                    controlMode = static_cast<ControlMode>(i);
-                    break;
-                }
-
-
-            std::string const& sType = signalType_.get_active_text();
-            SignalType signal;
-            for (uint i = 0; i < SIGNAL_TYPES.size(); i++)
-                if (SIGNAL_TYPES.at(i) == sType)
-                {
-                    signal = static_cast<SignalType>(i);
-                    break;
-                }
-
-            double amplitude = motionAmplitude_.get_value();
-            double frequency = motionFrequency_.get_value();
-            double offset = motionOffset_.get_value();
-
-            struct timespec startTime, currentTime;
-            clock_gettime(CLOCK_MONOTONIC, &startTime);
-            while (isRunning_)
-            {
-                clock_gettime(CLOCK_MONOTONIC, &currentTime);
-                double elapsedTime = currentTime.tv_sec - startTime.tv_sec + (currentTime.tv_nsec - startTime.tv_nsec) / 1.0e9;
-
-                float target = 0.0;
-                switch(signal)
-                {
-                    case SignalType::SINUSOID:
-                        target = amplitude * std::sin(2 * M_PI * frequency * elapsedTime) + offset;
-                        break;
-                    case SignalType::CONSTANT:
-                        target = offset;
-                        break;
-                    default: break;
-                }
-
-                switch(controlMode)
-                {
-                    case ControlMode::CURRENT: nautilus_->writeRegister(nautilus::Register::targetIQ, target);
-                    case ControlMode::VELOCITY: nautilus_->writeRegister(nautilus::Register::targetVelocity, target);
-                    case ControlMode::POSITION: nautilus_->writeRegister(nautilus::Register::targetPosition, static_cast<float>(target / 2 / M_PI));
-                    default: break;
-                }
-
-                Teleplot::localhost().update("target", target);
-                nautilus::NautilusReply rep = nautilus_->readRegister(nautilus::Register::measuredIQ);
-                if (rep.isValid)
-                    Teleplot::localhost().update("current", rep.data);
-                rep = nautilus_->readRegister(nautilus::Register::measuredPosition);
-                if (rep.isValid)
-                    Teleplot::localhost().update("position", rep.data);
-                rep = nautilus_->readRegister(nautilus::Register::measuredVelocity);
-                if (rep.isValid)
-                    Teleplot::localhost().update("velocity", rep.data);
-                usleep(5000);
-            }
-            nautilus_->stop();
-        }
-    }
-}

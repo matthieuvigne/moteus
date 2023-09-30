@@ -24,53 +24,40 @@ enum class SignalType{
 };
 static std::vector<std::string> SIGNAL_TYPES({"Sinus", "Constant"});
 
+struct ThreadStatus
+{
+    bool terminate = false;
+    bool needToPerformCommutation = false;
+    bool commutationDone = false;
+    bool isRunning = false;
+    double commutationCurrent = 0.0;
+    ControlMode controlMode;
+    SignalType signalType;
+    double amplitude = 0.0;
+    double frequency = 0.0;
+    double offset = 0.0;
+};
+
 class NautilusGUI : public Gtk::Window
 {
     public:
         NautilusGUI(nautilus::Nautilus *nautilus);
-
+        ~NautilusGUI();
 
     protected:
-        // // Rescan network to find all servos.
-        // void rescan();
-
-        // // Action callbacks
-        // void resetPosition(int const& servoNumber);
-        // void updateEnable(int const& servoNumber);
-        // void updateTargetPosition(int const& servoNumber);
-        // void updateTargetVelocity(int const& servoNumber);
-        // void updateControlMode(int const& servoNumber);
-        // void updateId(int const& servoNumber);
-
-        // Update all register readings
         bool updateReadings();
         bool checkAsyncStatus();
-
         void writeRegister(int const& index);
-
         void startCommutation();
-
         void motionClicked();
 
 
         nautilus::Nautilus* nautilus_;
 
-
         std::vector<Gtk::Label> registerValues_;
         Gtk::Label auxiliaryPosLabel_;
-
         std::vector<std::pair<nautilus::GUIRegister, Gtk::SpinButton>> updateEntries_;
 
-        std::vector<int> servoIds_;
-
-        std::vector<Gtk::Label> servoPositions_;
-        std::vector<Gtk::Label> servoVelocities_;
-        std::vector<Gtk::ComboBoxText> controlModes_;
-        std::vector<Gtk::SpinButton> targetPositions_;
-        std::vector<Gtk::SpinButton> targetVelocities_;
-        std::vector<Gtk::CheckButton> torqueEnabled_;
-        std::vector<Gtk::Button> resetButtons_;
-        std::vector<Gtk::Button> changeIdButtons_;
 
         Gtk::Grid grid_;
         Gtk::ScrolledWindow scroll_;
@@ -91,11 +78,8 @@ class NautilusGUI : public Gtk::Window
         Gtk::SpinButton motionFrequency_;
         Gtk::SpinButton motionOffset_;
 
-        bool needToPerformCommutation_{false};
-        bool commutationDone_{false};
-        bool isRunning_{false};
-
-        void backgroundThread();
+        ThreadStatus status_;
+        std::thread bgThread_;
 };
 
 #endif

@@ -96,7 +96,6 @@ bool Nautilus::writeRegister(Register const& reg, uint32_t const& value)
 
 void Nautilus::storeToPersistentMemory()
 {
-    std::cout << "storing" << std::endl;
     spiComm(Command::storeToPersistentMemory, 0, 0);
 }
 
