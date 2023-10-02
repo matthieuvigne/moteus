@@ -36,6 +36,16 @@ struct ThreadStatus
     double amplitude = 0.0;
     double frequency = 0.0;
     double offset = 0.0;
+
+    std::vector<std::string> messages;
+    std::mutex mutex;
+
+    void appendMessage(std::string const& message)
+    {
+        mutex.lock();
+        messages.push_back(message);
+        mutex.unlock();
+    }
 };
 
 class NautilusGUI : public Gtk::Window
@@ -77,6 +87,8 @@ class NautilusGUI : public Gtk::Window
         Gtk::SpinButton motionAmplitude_;
         Gtk::SpinButton motionFrequency_;
         Gtk::SpinButton motionOffset_;
+
+        Gtk::TextView logTextView;
 
         ThreadStatus status_;
         std::thread bgThread_;

@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <math.h>
 
+#include <sstream>
+
 typedef std::vector<nautilus::Register> rVector;
 
 
@@ -47,10 +49,12 @@ std::vector<float> getAverageRegisters(nautilus::Nautilus *nautilus,
 }
 
 
-void performCommutation(nautilus::Nautilus *nautilus, double const& targetCurrent)
+void performCommutation(nautilus::Nautilus *nautilus, ThreadStatus *status)
 {
+    std::stringstream sstream;
+    sstream << "Performing commutation, target current: " << std::setprecision(2) << status->commutationCurrent;
+    status->appendMessage(sstream.str());
 
-    std::cout << "Performing commutation, target current: " << targetCurrent << std::endl;
     nautilus->writeRegister(nautilus::Register::encoderOrientation, static_cast<uint32_t>(0));
     nautilus->writeRegister(nautilus::Register::commutationOffset, static_cast<uint32_t>(0));
 
@@ -63,22 +67,24 @@ void performCommutation(nautilus::Nautilus *nautilus, double const& targetCurren
     float res = voltageRatio * results.at(0) / std::abs(results.at(1));
 
     // Now that we have the resistance, let's check it with the desired user current.
-    voltageRatio = res * targetCurrent / results.at(0);
+    voltageRatio = res * status->commutationCurrent / results.at(0);
 
     // Check that we get the desired current.
     nautilus->commutation(0.0, voltageRatio);
     usleep(20000);
     results = getAverageRegisters(nautilus, rVector({nautilus::Register::measuredIPhaseA}));
 
-    if (std::abs(results[0] - targetCurrent) / std::abs(targetCurrent) > 0.20)
+    if (std::abs(results[0] - status->commutationCurrent) / std::abs(status->commutationCurrent) > 0.20)
     {
-        std::cout << "Error determining motor resistance." << std::endl;
+        status->appendMessage("Error determining motor resistance.");
         nautilus->stop();
         return;
     }
     else
     {
-        std::cout << "Identified motor resistance:" << std::setprecision(3) << res << std::endl;
+        sstream.str("");
+        sstream << "Identified motor resistance:" << std::setprecision(3) << res;
+        status->appendMessage(sstream.str());
     }
 
     nautilus->commutation(0.2, voltageRatio);
@@ -90,7 +96,9 @@ void performCommutation(nautilus::Nautilus *nautilus, double const& targetCurren
 
     uint32_t const encoderZero = static_cast<uint32_t>(results.at(0));
     float zeroPos = results.at(1);
-    std::cout << "Encoder zero position:" << zeroPos << "(" << encoderZero << ")" << std::endl;
+    sstream.str("");
+    sstream << "Encoder zero position:" << zeroPos << "(" << encoderZero << ")";
+    status->appendMessage(sstream.str());
 
     // Rotate by 90 electrical degree and check that the result makes sense.
     for (int i = 0; i < 10; i++)
@@ -102,7 +110,9 @@ void performCommutation(nautilus::Nautilus *nautilus, double const& targetCurren
     usleep(20000);
     results = getAverageRegisters(nautilus, rVector({nautilus::Register::measuredPosition}), 20, 500);
     float orthogonalPos = results.at(0);
-    std::cout << "Encoder 90deg position:" << orthogonalPos << std::endl;
+    sstream.str("");
+    sstream << "Encoder 90deg position:" << orthogonalPos;
+    status->appendMessage(sstream.str());
 
     // Compute encoder direction and check number of poles.
     float encoderDelta = orthogonalPos - zeroPos;
@@ -115,10 +125,14 @@ void performCommutation(nautilus::Nautilus *nautilus, double const& targetCurren
         encoderDelta = orthogonalPos - encoderZero;
     }
     uint32_t isInverted =  encoderDelta > 0 ? 0 : 1;
-    std::cout << "Encoder inverted: " << isInverted << std::endl;
+    sstream.str("");
+    sstream << "Encoder inverted: " << isInverted;
+    status->appendMessage(sstream.str());
 
     // Estimate number of poles
-    std::cout << "Number of poles: " << 2 * M_PI / std::abs(encoderDelta * 4) << std::endl;
+    sstream.str("");
+    sstream << "Number of poles: " << 2 * M_PI / std::abs(encoderDelta * 4);
+    status->appendMessage(sstream.str());
 
     // Compare with internal register setting
     uint32_t nPoles = static_cast<uint32_t>(2 * M_PI / std::abs(encoderDelta * 4));
@@ -128,7 +142,10 @@ void performCommutation(nautilus::Nautilus *nautilus, double const& targetCurren
     uint32_t expectedNPoles = reinterpret_cast<uint32_t &>(rep.data);
     if (nPoles != expectedNPoles)
     {
-        std::cout << "Error: motor configured for " << expectedNPoles << " poles but measured " << nPoles << std::endl;
+        sstream.str("");
+        sstream << "Error: motor configured for " << expectedNPoles << " poles but measured " << nPoles ;
+        status->appendMessage(sstream.str());
+
         nautilus->stop();
         // return;
     }
@@ -141,7 +158,10 @@ void performCommutation(nautilus::Nautilus *nautilus, double const& targetCurren
     // Save results
     nautilus->writeRegister(nautilus::Register::encoderOrientation, isInverted);
     nautilus->writeRegister(nautilus::Register::commutationOffset, -offset);
-    std::cout << "Computed commutation offset: " << -offset << std::endl;
 
+    sstream.str("");
+    sstream << "Computed commutation offset: " << -offset << nPoles ;
+    status->appendMessage(sstream.str());
+    status->appendMessage("Commutation completed");
     nautilus->stop();
 }

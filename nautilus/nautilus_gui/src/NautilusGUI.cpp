@@ -16,7 +16,7 @@ void backgroundThread(ThreadStatus *status, nautilus::Nautilus *nautilus)
 
         if (status->needToPerformCommutation)
         {
-            performCommutation(nautilus, status->commutationCurrent);
+            performCommutation(nautilus, status);
             status->needToPerformCommutation = false;
             status->commutationDone = true;
         }
@@ -161,33 +161,37 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
 
     Gtk::Box *vBox = new Gtk::Box(Gtk::ORIENTATION_VERTICAL);
     vBox->set_spacing(10);
-    vBox->set_valign(Gtk::ALIGN_START);
-    vBox->set_halign(Gtk::ALIGN_CENTER);
+    vBox->set_valign(Gtk::ALIGN_FILL);
+    vBox->set_halign(Gtk::ALIGN_FILL);
     vBox->set_hexpand(true);
+    vBox->set_vexpand(true);
     grid_.attach(*vBox, 4, 0, 1, i);
 
     Gtk::Box *hBox = new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL);
     hBox->set_spacing(10);
     header = new Gtk::Label("Commutation current (A):");
-    hBox->pack_start(*header);
+    hBox->pack_start(*header, Gtk::PACK_EXPAND_PADDING);
     commutationCurrent_.set_range(0.1, 20.0);
     commutationCurrent_.set_value(1.0);
     commutationCurrent_.set_increments(0.1, 1);
     commutationCurrent_.set_digits(2);
     commutationCurrent_.set_width_chars(4);
-    hBox->pack_start(commutationCurrent_);
-    vBox->pack_start(*hBox);
+    hBox->pack_start(commutationCurrent_, Gtk::PACK_SHRINK);
+    hBox->set_halign(Gtk::ALIGN_CENTER);
+    vBox->pack_start(*hBox, Gtk::PACK_SHRINK);
 
     commutationButton_ = Gtk::Button("Perform commutation");
-    vBox->pack_start(commutationButton_);
+    commutationButton_.set_halign(Gtk::ALIGN_CENTER);
+    vBox->pack_start(commutationButton_, Gtk::PACK_SHRINK);
     commutationButton_.signal_clicked().connect(sigc::mem_fun(this, &NautilusGUI::startCommutation));
 
     Gtk::Button *button = new Gtk::Button("Store settings to persistent memory");
-    vBox->pack_start(*button);
+    button->set_halign(Gtk::ALIGN_CENTER);
+    vBox->pack_start(*button, Gtk::PACK_SHRINK);
     button->signal_clicked().connect(sigc::mem_fun(nautilus_, &nautilus::Nautilus::storeToPersistentMemory));
 
     sep = new Gtk::Separator(Gtk::ORIENTATION_HORIZONTAL);
-    vBox->pack_start(*sep);
+    vBox->pack_start(*sep, Gtk::PACK_SHRINK);
 
 
     hBox = new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL);
@@ -198,7 +202,8 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
         motionType_.append(s);
     motionType_.set_active_text(CONTROL_MODES.at(0));
     hBox->pack_start(motionType_);
-    vBox->pack_start(*hBox);
+    hBox->set_halign(Gtk::ALIGN_CENTER);
+    vBox->pack_start(*hBox, Gtk::PACK_SHRINK);
 
 
     hBox = new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL);
@@ -209,7 +214,8 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
         signalType_.append(s);
     signalType_.set_active_text(SIGNAL_TYPES.at(0));
     hBox->pack_start(signalType_);
-    vBox->pack_start(*hBox);
+    hBox->set_halign(Gtk::ALIGN_CENTER);
+    vBox->pack_start(*hBox, Gtk::PACK_SHRINK);
 
     hBox = new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL);
     hBox->set_spacing(10);
@@ -221,7 +227,8 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
     motionFrequency_.set_digits(2);
     motionFrequency_.set_width_chars(4);
     hBox->pack_start(motionFrequency_);
-    vBox->pack_start(*hBox);
+    hBox->set_halign(Gtk::ALIGN_CENTER);
+    vBox->pack_start(*hBox, Gtk::PACK_SHRINK);
 
     hBox = new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL);
     hBox->set_spacing(10);
@@ -233,22 +240,32 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
     motionOffset_.set_digits(2);
     motionOffset_.set_width_chars(4);
     hBox->pack_start(motionOffset_);
-    vBox->pack_start(*hBox);
+    hBox->set_halign(Gtk::ALIGN_CENTER);
+    vBox->pack_start(*hBox, Gtk::PACK_SHRINK);
 
     hBox = new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL);
     header = new Gtk::Label("Signal amplitude:");
-    hBox->pack_start(*header);
+    hBox->pack_start(*header, Gtk::PACK_SHRINK);
     motionAmplitude_.set_range(0.01, 200.0);
     motionAmplitude_.set_value(1.0);
     motionAmplitude_.set_increments(0.1, 1);
     motionAmplitude_.set_digits(2);
     motionAmplitude_.set_width_chars(4);
     hBox->pack_start(motionAmplitude_);
-    vBox->pack_start(*hBox);
+    hBox->set_halign(Gtk::ALIGN_CENTER);
+    vBox->pack_start(*hBox, Gtk::PACK_SHRINK);
 
     motionButton_ = Gtk::Button("Start");
-    vBox->pack_start(motionButton_);
+    motionButton_.set_halign(Gtk::ALIGN_CENTER);
+    vBox->pack_start(motionButton_, Gtk::PACK_SHRINK);
     motionButton_.signal_clicked().connect(sigc::mem_fun(this, &NautilusGUI::motionClicked));
+
+
+    sep = new Gtk::Separator(Gtk::ORIENTATION_HORIZONTAL);
+    vBox->pack_start(*sep, Gtk::PACK_SHRINK);
+    Gtk::ScrolledWindow *scroll = new Gtk::ScrolledWindow();
+    vBox->pack_start(*scroll);
+    scroll->add(logTextView);
 
 
     Glib::signal_timeout().connect(sigc::mem_fun(*this, &NautilusGUI::updateReadings), 100);
@@ -268,10 +285,6 @@ NautilusGUI::~NautilusGUI()
 
 bool NautilusGUI::updateReadings()
 {
-    // Don't query drive while running
-    if (status_.isRunning)
-        return true;
-
     for (unsigned int i = 0; i < registerValues_.size(); i++)
     {
         nautilus::NautilusReply rep = nautilus_->readRegister(nautilus::registerList[i].address);
@@ -305,13 +318,21 @@ void NautilusGUI::startCommutation()
 
 bool NautilusGUI::checkAsyncStatus()
 {
+
+    status_.mutex.lock();
     if (status_.commutationDone)
     {
-        std::cout << "Commutation done..." << std::endl;
         commutationButton_.set_sensitive(true);
         motionButton_.set_sensitive(true);
         status_.commutationDone = false;
     }
+
+    std::vector<std::string> messages = status_.messages;
+    status_.messages.clear();
+    status_.mutex.unlock();
+
+    for (std::string s : messages)
+        logTextView.get_buffer()->insert_at_cursor(s + "\n");
     return true;
 }
 

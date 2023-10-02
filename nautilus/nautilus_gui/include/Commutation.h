@@ -5,9 +5,10 @@
 #define COMMUTATION_H
 
 #include "NautilusDriver.h"
+#include "NautilusGUI.h"
 
 /// @brief Perform encoder commutation, this is meant to run in a separate thread
 /// @param nautilus Nautilus controller
-void performCommutation(nautilus::Nautilus *nautilus, double const& targetCurrent);
+void performCommutation(nautilus::Nautilus *nautilus, ThreadStatus *status);
 
 #endif
