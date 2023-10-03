@@ -44,12 +44,17 @@ enum SPIRegister {
     nbrOfPoles         = 0x33,       // uint16_t
 
     currentLoopKp      = 0x40,       // float32_t
-    currentLoopKI      = 0x41,       // float32_t
+    currentLoopKi      = 0x41,       // float32_t
     currentLoopIntMax  = 0x42,       // float32_t
 
     velocityLoopKp      = 0x43,       // float32_t
-    velocityLoopKI      = 0x44,       // float32_t
+    velocityLoopKi      = 0x44,       // float32_t
     velocityLoopIntMax  = 0x45,       // float32_t
+
+    positionLoopKp      = 0x46,       // float32_t
+    positionLoopKd      = 0x47,       // float32_t
+    positionLoopKi      = 0x48,       // float32_t
+    positionLoopIntMax  = 0x49,       // float32_t
 
     motorMaxCurrent      = 0x50,       // float32_t
     motorMaxTemperature  = 0x51,       // float32_t

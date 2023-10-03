@@ -115,7 +115,7 @@ float UIntToF(uint32_t const& i)
 uint32_t nautilus::processReadCommand(uint8_t const& registerAddress)
 {
 
-    switch ((registerAddress))
+    switch (registerAddress)
     {
     case SPIRegister::currentMode:          return bldc->status().mode;
     case SPIRegister::faultCode:            return static_cast<uint32_t>(bldc->status().fault);
@@ -141,11 +141,15 @@ uint32_t nautilus::processReadCommand(uint8_t const& registerAddress)
     case SPIRegister::commutationOffset:    return fToUInt(bldc->motor()->offset[0]);
     case SPIRegister::nbrOfPoles:           return bldc->motor()->poles;
     case SPIRegister::currentLoopKp:        return fToUInt(bldc->config().pid_dq.kp);
-    case SPIRegister::currentLoopKI:        return fToUInt(bldc->config().pid_dq.ki);
+    case SPIRegister::currentLoopKi:        return fToUInt(bldc->config().pid_dq.ki);
     case SPIRegister::currentLoopIntMax:    return 0;   // Not available, this loop has no anti-windup term.
-    case SPIRegister::velocityLoopKp:       return fToUInt(bldc->config().pid_position.kd);
-    case SPIRegister::velocityLoopKI:       return fToUInt(bldc->config().pid_position.kp);
-    case SPIRegister::velocityLoopIntMax:   return 0;
+    case SPIRegister::velocityLoopKp:       return fToUInt(bldc->config().pid_velocity.kp);
+    case SPIRegister::velocityLoopKi:       return fToUInt(bldc->config().pid_velocity.ki);
+    case SPIRegister::velocityLoopIntMax:   return fToUInt(bldc->config().pid_velocity.ilimit);
+    case SPIRegister::positionLoopKp:       return fToUInt(bldc->config().pid_position.kp);
+    case SPIRegister::positionLoopKd:       return fToUInt(bldc->config().pid_position.kd);
+    case SPIRegister::positionLoopKi:       return fToUInt(bldc->config().pid_position.ki);
+    case SPIRegister::positionLoopIntMax:   return fToUInt(bldc->config().pid_position.ilimit);
     case SPIRegister::motorMaxCurrent:      return fToUInt(bldc->config().max_current_A);
     case SPIRegister::motorMaxTemperature:  return fToUInt(bldc->config().enable_motor_temperature ? bldc->config().motor_fault_temperature : -1);
     case SPIRegister::driverMaxTemperature: return fToUInt(bldc->config().fault_temperature);
@@ -157,58 +161,50 @@ uint32_t nautilus::processReadCommand(uint8_t const& registerAddress)
 // Handle write query.
 void nautilus::processWriteCommand(uint8_t const& registerAddress, uint32_t const& registerValue)
 {
-    // Empty for now
+    // Basic register settings
+    float const fRegisterValue =  UIntToF(registerValue);
+    switch (registerAddress)
+    {
+        case SPIRegister::currentLoopKp:        bldc->config().pid_dq.kp = fRegisterValue; break;
+        case SPIRegister::currentLoopKi:        bldc->config().pid_dq.ki = fRegisterValue; break;
+        case SPIRegister::velocityLoopKp:       bldc->config().pid_velocity.kp = fRegisterValue; break;
+        case SPIRegister::velocityLoopKi:       bldc->config().pid_velocity.ki = fRegisterValue; break;
+        case SPIRegister::velocityLoopIntMax:   bldc->config().pid_velocity.ilimit = fRegisterValue; break;
+        case SPIRegister::positionLoopKp:       bldc->config().pid_position.kp = fRegisterValue; break;
+        case SPIRegister::positionLoopKd:       bldc->config().pid_position.kd = fRegisterValue; break;
+        case SPIRegister::positionLoopKi:       bldc->config().pid_position.ki = fRegisterValue; break;
+        case SPIRegister::positionLoopIntMax:   bldc->config().pid_position.ilimit = fRegisterValue; break;
+        case SPIRegister::commTimeout:          timeoutMs = registerValue; break;
 
-    if (registerAddress == SPIRegister::targetVelocity)
-    {
-        command->velocity = UIntToF(registerValue);
-    }
-    else if (registerAddress == SPIRegister::encoderOrientation)
-    {
-        bldc->motor()->phase_invert = registerValue & 0xFF;
-    }
-    else if (registerAddress == SPIRegister::currentLoopKp)
-    {
-        bldc->config().pid_dq.kp = UIntToF(registerValue);
-    }
-    else if (registerAddress == SPIRegister::currentLoopKI)
-    {
-        bldc->config().pid_dq.ki = UIntToF(registerValue);
-    }
-    else if (registerAddress == SPIRegister::velocityLoopKp)
-    {
-        bldc->config().pid_position.kd = UIntToF(registerValue);
-    }
-    else if (registerAddress == SPIRegister::velocityLoopKI)
-    {
-        bldc->config().pid_position.kp = UIntToF(registerValue);
-    }
-    else if (registerAddress == SPIRegister::targetIQ)
-    {
-        command->mode = moteus::kCurrent;
-        command->i_q_A = UIntToF(registerValue);
+        case SPIRegister::encoderOrientation:   bldc->motor()->phase_invert = registerValue & 0xFF; break;
+        case SPIRegister::commutationOffset:
+            for (int i = 0; i < 64; i++)
+                bldc->motor()->offset[i] = fRegisterValue;
+            break;
+        case SPIRegister::targetPosition:
+            command->mode = moteus::kPosition;
+            command->position = fRegisterValue;
 
-        timeoutCounter = timeoutMs;
-        bldc->Command(*command);
-    }
-    else if (registerAddress == SPIRegister::targetPosition)
-    {
-        command->mode = moteus::kPosition;
-        command->position = UIntToF(registerValue);
+            timeoutCounter = timeoutMs;
+            bldc->Command(*command);
+            break;
+        case SPIRegister::targetVelocity:
+            command->mode = moteus::kVelocity;
+            command->velocity = fRegisterValue;
 
-        timeoutCounter = timeoutMs;
-        bldc->Command(*command);
-    }
-    else if (registerAddress == SPIRegister::commutationOffset)
-    {
-        float const offset =  UIntToF(registerValue);
-        for (int i = 0; i < 64; i++)
-            bldc->motor()->offset[i] = offset;
-        // TODO: save to persistent memory.
-    }
-    else if (registerAddress == SPIRegister::commTimeout)
-    {
-        timeoutMs = registerValue;
+            timeoutCounter = timeoutMs;
+            bldc->Command(*command);
+            break;
+        case SPIRegister::targetIQ:
+            command->mode = moteus::kCurrent;
+            command->i_q_A = fRegisterValue;
+
+            timeoutCounter = timeoutMs;
+            bldc->Command(*command);
+            break;
+
+        default:
+            break;
     }
 }
 
@@ -229,6 +225,7 @@ void SPI3_IRQHandler(void)
         if (crc != rxBuffer[7])
         {
             errorCnt = 500;
+            rxBuffer[0] = 0;
         }
         else
         {

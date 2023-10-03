@@ -44,9 +44,9 @@ void backgroundThread(ThreadStatus *status, nautilus::Nautilus *nautilus)
 
                 switch(status->controlMode)
                 {
-                    case ControlMode::CURRENT: nautilus->writeRegister(nautilus::Register::targetIQ, target);
-                    case ControlMode::VELOCITY: nautilus->writeRegister(nautilus::Register::targetVelocity, target);
-                    case ControlMode::POSITION: nautilus->writeRegister(nautilus::Register::targetPosition, static_cast<float>(target / 2 / M_PI));
+                    case ControlMode::CURRENT: nautilus->writeRegister(nautilus::Register::targetIQ, target); break;
+                    case ControlMode::VELOCITY: nautilus->writeRegister(nautilus::Register::targetVelocity, static_cast<float>(target / 2 / M_PI)); break;
+                    case ControlMode::POSITION: nautilus->writeRegister(nautilus::Register::targetPosition, static_cast<float>(target / 2 / M_PI)); break;
                     default: break;
                 }
 
@@ -60,6 +60,15 @@ void backgroundThread(ThreadStatus *status, nautilus::Nautilus *nautilus)
                 rep = nautilus->readRegister(nautilus::Register::measuredVelocity);
                 if (rep.isValid)
                     Teleplot::localhost().update("velocity", rep.data);
+                rep = nautilus->readRegister(nautilus::Register::measuredIPhaseA);
+                if (rep.isValid)
+                    Teleplot::localhost().update("currentPhaseA", rep.data);
+                rep = nautilus->readRegister(nautilus::Register::measuredIPhaseB);
+                if (rep.isValid)
+                    Teleplot::localhost().update("currentPhaseB", rep.data);
+                rep = nautilus->readRegister(nautilus::Register::measuredIPhaseC);
+                if (rep.isValid)
+                    Teleplot::localhost().update("currentPhaseC", rep.data);
                 usleep(5000);
             }
             nautilus->stop();
@@ -234,7 +243,7 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
     hBox->set_spacing(10);
     header = new Gtk::Label("Signal offset:");
     hBox->pack_start(*header);
-    motionOffset_.set_range(0.01, 200.0);
+    motionOffset_.set_range(-500.0, 500.0);
     motionOffset_.set_value(1.0);
     motionOffset_.set_increments(0.1, 1);
     motionOffset_.set_digits(2);
@@ -246,7 +255,7 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
     hBox = new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL);
     header = new Gtk::Label("Signal amplitude:");
     hBox->pack_start(*header, Gtk::PACK_SHRINK);
-    motionAmplitude_.set_range(0.01, 200.0);
+    motionAmplitude_.set_range(0.01, 500.0);
     motionAmplitude_.set_value(1.0);
     motionAmplitude_.set_increments(0.1, 1);
     motionAmplitude_.set_digits(2);

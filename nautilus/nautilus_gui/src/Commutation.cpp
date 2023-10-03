@@ -87,10 +87,17 @@ void performCommutation(nautilus::Nautilus *nautilus, ThreadStatus *status)
         status->appendMessage(sstream.str());
     }
 
-    nautilus->commutation(0.2, voltageRatio);
-    usleep(500000);
+    // Perform full initial cycle.
+
+    for (int i = 0; i < 50; i++)
+    {
+        nautilus->commutation(2 * M_PI * i / 50.0, voltageRatio);
+        usleep(20000);
+    }
+
+    // Go back to zero.
     nautilus->commutation(0.0, voltageRatio);
-    usleep(100000);
+    usleep(20000);
 
     results = getAverageRegisters(nautilus, rVector({nautilus::Register::rawEncoderPos, nautilus::Register::measuredPosition}), 20, 500, std::vector<bool>({true, false}));
 
@@ -106,6 +113,18 @@ void performCommutation(nautilus::Nautilus *nautilus, ThreadStatus *status)
         nautilus->commutation(M_PI_2 * i / 10.0, voltageRatio);
         usleep(20000);
     }
+
+    // for (int j = 0; j < 14; j++)
+    // {
+    //     for (int i = 0; i < 50; i++)
+    //     {
+    //         nautilus->commutation(2 * M_PI * i / 50.0, voltageRatio);
+    //         usleep(20000);
+    //     }
+    //     usleep(500000);
+    // }
+
+
     nautilus->commutation(M_PI_2, voltageRatio);
     usleep(20000);
     results = getAverageRegisters(nautilus, rVector({nautilus::Register::measuredPosition}), 20, 500);
@@ -135,7 +154,7 @@ void performCommutation(nautilus::Nautilus *nautilus, ThreadStatus *status)
     status->appendMessage(sstream.str());
 
     // Compare with internal register setting
-    uint32_t nPoles = static_cast<uint32_t>(2 * M_PI / std::abs(encoderDelta * 4));
+    uint32_t nPoles = static_cast<uint32_t>(2 * 2 * M_PI / std::abs(encoderDelta * 4));
     nautilus::NautilusReply rep;
     while (!rep.isValid)
         rep = nautilus->readRegister(nautilus::Register::nbrOfPoles);

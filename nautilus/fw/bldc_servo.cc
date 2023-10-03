@@ -896,11 +896,11 @@ class BldcServo::Impl {
     // Check to see if any motor outputs are now high.  If so, fault,
     // because we have exceeded the maximum duty cycle we can achieve
     // while still sampling current correctly.
-    if (status_.mode != kFault &&
-        phase_monitors_.read()) {
-      status_.mode = kFault;
-      status_.fault = errc::kPwmCycleOverrun;
-    }
+    // if (status_.mode != kFault &&
+    //     phase_monitors_.read()) {
+    //   status_.mode = kFault;
+    //   status_.fault = errc::kPwmCycleOverrun;
+    // }
   }
 
   void ISR_DoSense() __attribute__((always_inline)) MOTEUS_CCM_ATTRIBUTE {
@@ -1118,6 +1118,7 @@ class BldcServo::Impl {
       }
       case kCurrent:
       case kPosition:
+      case kVelocity:
       case kZeroVelocity:
       case kStayWithinBounds: {
         return true;
@@ -1148,6 +1149,7 @@ class BldcServo::Impl {
       case kVoltageDq:
       case kCurrent:
       case kPosition:
+      case kVelocity:
       case kZeroVelocity:
       case kStayWithinBounds:
       case kMeasureInductance:
@@ -1188,6 +1190,7 @@ class BldcServo::Impl {
       case kVoltageDq:
       case kCurrent:
       case kPosition:
+      case kVelocity:
       case kPositionTimeout:
       case kZeroVelocity:
       case kStayWithinBounds:
@@ -1221,6 +1224,7 @@ class BldcServo::Impl {
           case kVoltageDq:
           case kCurrent:
           case kPosition:
+          case kVelocity:
           case kZeroVelocity:
           case kStayWithinBounds:
           case kMeasureInductance:
@@ -1307,6 +1311,7 @@ class BldcServo::Impl {
           return false;
         case kCurrent:
         case kPosition:
+        case kVelocity:
         case kPositionTimeout:
         case kZeroVelocity:
         case kStayWithinBounds:
@@ -1343,6 +1348,7 @@ class BldcServo::Impl {
         case kCurrent:
         case kMeasureInductance:
         case kBrake:
+        case kVelocity:
           return false;
         case kPosition:
         case kPositionTimeout:
@@ -1358,6 +1364,17 @@ class BldcServo::Impl {
       status_.control_position_raw = {};
       status_.control_position = std::numeric_limits<float>::quiet_NaN();
       status_.control_velocity = {};
+    }
+
+    const bool velocity_pid_active = [&]() MOTEUS_CCM_ATTRIBUTE {
+        switch (status_.mode) {
+          case kVelocity: return true; break;
+          default: return false; break;
+        }
+      }();
+    if (!velocity_pid_active || force_clear == kAlwaysClear)
+    {
+      status_.pid_velocity.Clear();
     }
   }
 
@@ -1471,6 +1488,10 @@ class BldcServo::Impl {
       }
       case kPosition: {
         ISR_DoPosition(sin_cos, data);
+        break;
+      }
+      case kVelocity: {
+        ISR_DoVelocity(sin_cos, data);
         break;
       }
       case kPositionTimeout: {
@@ -2017,6 +2038,112 @@ class BldcServo::Impl {
         velocity_command / motor_position_->config()->rotor_to_output_ratio);
   }
 
+  void ISR_DoVelocity(
+      const SinCos& sin_cos, CommandData* data) MOTEUS_CCM_ATTRIBUTE {
+
+    const float velocity_command = data->velocity;
+
+    // From this point, we require actual valid position.
+    if (!position_.position_relative_valid) {
+      status_.mode = kFault;
+      status_.fault = errc::kPositionInvalid;
+      return;
+    }
+    if (position_.error != MotorPosition::Status::kNone) {
+      status_.mode = kFault;
+      status_.fault = errc::kEncoderFault;
+      return;
+    }
+
+    const float measured_velocity = position_.velocity;
+
+    // We always control relative to the control position of 0, so
+    // that we get equal performance across the entire viable integral
+    // position range.
+
+    // Manually do the PID.
+    float const error = measured_velocity - velocity_command;
+
+    status_.pid_velocity.integral = config_.pid_velocity.ki / rate_config_.rate_hz * error;
+    if (status_.pid_velocity.integral > config_.pid_velocity.ilimit)
+      status_.pid_velocity.integral = config_.pid_velocity.ilimit;
+    else if (status_.pid_velocity.integral < -config_.pid_velocity.ilimit)
+      status_.pid_velocity.integral = -config_.pid_velocity.ilimit;
+
+    const float unlimited_torque_Nm = motor_position_config()->output.sign *
+      (config_.pid_velocity.sign * (config_.pid_velocity.kp * error + status_.pid_velocity.integral));
+
+
+    const float limited_torque_Nm =
+        Limit(unlimited_torque_Nm, -data->max_torque_Nm, data->max_torque_Nm);
+
+    control_.torque_Nm = limited_torque_Nm;
+    status_.torque_error_Nm = status_.torque_Nm - control_.torque_Nm;
+
+    const float limited_q_A =
+        torque_to_current(limited_torque_Nm *
+                          motor_position_->config()->rotor_to_output_ratio);
+
+    {
+      const auto& pos_config = motor_position_->config();
+      const auto commutation_source = pos_config->commutation_source;
+      const float cpr = static_cast<float>(
+          pos_config->sources[commutation_source].cpr);
+      const float commutation_position =
+          position_.sources[commutation_source].filtered_value / cpr;
+
+      auto sample =
+          [&](const auto& table, float scale) {
+            const int left_index = std::min<int>(
+                table.size() - 1,
+                static_cast<int>(table.size() * commutation_position));
+            const int right_index = (left_index + 1) % table.size();
+            const float comp_fraction =
+                (commutation_position -
+                 static_cast<float>(left_index) / table.size()) *
+                static_cast<float>(table.size());
+            const float left_comp = table[left_index] * scale;
+            const float right_comp = table[right_index] * scale;
+
+            return (right_comp - left_comp) * comp_fraction + left_comp;
+          };
+      const float q_comp_A = sample(motor_.cogging_dq_comp,
+                                    motor_.cogging_dq_scale);
+
+      control_.q_comp_A = q_comp_A;
+    }
+
+    const float compensated_q_A = limited_q_A + control_.q_comp_A;
+
+    const float q_A =
+        is_torque_constant_configured() ?
+        compensated_q_A :
+        Limit(compensated_q_A, -kMaxUnconfiguredCurrent, kMaxUnconfiguredCurrent);
+
+    const float d_A = [&]() MOTEUS_CCM_ATTRIBUTE {
+      if (config_.flux_brake_min_voltage <= 0.0f) {
+        return 0.0f;
+      }
+
+      const auto error = (
+          status_.filt_1ms_bus_V - config_.flux_brake_min_voltage);
+
+      if (error <= 0.0f) {
+        return 0.0f;
+      }
+
+      return (error / config_.flux_brake_resistance_ohm);
+    }();
+
+#ifdef MOTEUS_PERFORMANCE_MEASURE
+    status_.dwt.control_done_pos = DWT->CYCCNT;
+#endif
+
+    ISR_DoCurrent(
+        sin_cos, d_A, q_A,
+        velocity_command / motor_position_->config()->rotor_to_output_ratio);
+  }
+
   void ISR_DoStayWithinBounds(const SinCos& sin_cos, CommandData* data) MOTEUS_CCM_ATTRIBUTE {
     const auto target_position = [&]() MOTEUS_CCM_ATTRIBUTE -> std::optional<float> {
       if (!std::isnan(data->bounds_min) &&
@@ -2255,6 +2382,7 @@ private:
   SimplePI pid_d_{&config_.pid_dq, &status_.pid_d};
   SimplePI pid_q_{&config_.pid_dq, &status_.pid_q};
   PID pid_position_{&config_.pid_position, &status_.pid_position};
+  PID pid_velocity_{&config_.pid_velocity, &status_.pid_velocity};
 
   USART_TypeDef* debug_uart_ = nullptr;
   USART_TypeDef* onboard_debug_uart_ = nullptr;

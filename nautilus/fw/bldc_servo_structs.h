@@ -107,6 +107,9 @@ enum BldcServoMode {
   // All phases are pulled to ground.
   kBrake = 15,
 
+  // PI-based velocity control
+  kVelocity = 16,
+
   kNumModes,
 };
 
@@ -149,6 +152,7 @@ struct BldcServoStatus {
   SimplePI::State pid_d;
   SimplePI::State pid_q;
   PID::State pid_position;
+  PID::State pid_velocity;
 
   // This is measured in the same units as MotorPosition's integral
   // units, which is 48 bits to represent 1.0 unit of output
@@ -365,8 +369,7 @@ struct BldcServoCommandData {
 
 struct BldcServoMotor {
   // Hard-code number of poles for RMDXV2 actuator.
-  // uint8_t poles = 28;
-  uint8_t poles = 42;
+  uint8_t poles = 28;
 
   // Invert the order of phase movement.
   uint8_t phase_invert = 0;
@@ -483,6 +486,7 @@ struct BldcServoConfig {
   // loops.
   SimplePI::Config pid_dq;
   PID::Config pid_position;
+  PID::Config pid_velocity;
 
   // Use the configured motor resistance to apply a feedforward phase
   // voltage based on the desired current.
@@ -555,14 +559,20 @@ struct BldcServoConfig {
   uint32_t emit_debug = 0;
 
   BldcServoConfig() {
-    pid_dq.kp = 0.005f;
-    pid_dq.ki = 30.0f;
+    pid_dq.kp = 0.001f;
+    pid_dq.ki = 100.0f;
 
-    pid_position.kp = 4.0f;
+    pid_position.kp = 0.2f;
     pid_position.ki = 1.0f;
     pid_position.ilimit = 0.0f;
     pid_position.kd = 0.05f;
     pid_position.sign = -1.0f;
+
+    pid_velocity.kp = 0.003f;
+    pid_velocity.ki = 100.0f;
+    pid_velocity.ilimit = 1.0f;
+    pid_velocity.kd = 0.0f;
+    pid_velocity.sign = -1.0f;
   }
 
   template <typename Archive>
