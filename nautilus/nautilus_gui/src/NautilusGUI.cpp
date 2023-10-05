@@ -11,21 +11,21 @@ void backgroundThread(ThreadStatus *status, nautilus::Nautilus *nautilus)
     while (!status->terminate)
     {
         // Wait for running state
-        while (!status->isRunning && !status->needToPerformCommutation && !status->terminate)
+        while ((!status->isRunning && !status->needToPerformCommutation && !status->terminate) || status->jobDone)
             usleep(1000);
 
         if (status->needToPerformCommutation)
         {
             performCommutation(nautilus, status);
             status->needToPerformCommutation = false;
-            status->commutationDone = true;
+            status->jobDone = true;
         }
         else
         {
 
             struct timespec startTime, currentTime;
             clock_gettime(CLOCK_MONOTONIC, &startTime);
-            while (status->isRunning && !status->terminate)
+            while (status->isRunning && !status->terminate && !status->jobDone)
             {
                 clock_gettime(CLOCK_MONOTONIC, &currentTime);
                 double elapsedTime = currentTime.tv_sec - startTime.tv_sec + (currentTime.tv_nsec - startTime.tv_nsec) / 1.0e9;
@@ -69,6 +69,27 @@ void backgroundThread(ThreadStatus *status, nautilus::Nautilus *nautilus)
                 rep = nautilus->readRegister(nautilus::Register::measuredIPhaseC);
                 if (rep.isValid)
                     Teleplot::localhost().update("currentPhaseC", rep.data);
+
+                if (elapsedTime > 0.005)
+                {
+                    nautilus::Mode expectedMode;
+                    switch(status->controlMode)
+                    {
+                        case ControlMode::CURRENT: expectedMode = nautilus::Mode::Current; break;
+                        case ControlMode::VELOCITY: expectedMode = nautilus::Mode::Velocity; break;
+                        case ControlMode::POSITION: expectedMode = nautilus::Mode::Position; break;
+                        default: break;
+                    }
+                    bool inExpectedMode = rep.mode == static_cast<uint8_t>(expectedMode);
+                    if (!inExpectedMode)
+                    {
+                        std::stringstream sstream;
+                        sstream.str("");
+                        sstream << "Error: nautilus not in expected mode. Expected" << static_cast<int>(expectedMode) << " but actually in " << static_cast<int>(rep.mode) << ". Stopping.";
+                        status->appendMessage(sstream.str());
+                        status->jobDone = true;
+                    }
+                }
                 usleep(5000);
             }
             nautilus->stop();
@@ -320,7 +341,7 @@ void NautilusGUI::startCommutation()
 
     status_.isRunning = false;
     status_.needToPerformCommutation = true;
-    status_.commutationDone = false;
+    status_.jobDone = false;
     status_.commutationCurrent = commutationCurrent_.get_value();
 }
 
@@ -329,16 +350,17 @@ bool NautilusGUI::checkAsyncStatus()
 {
 
     status_.mutex.lock();
-    if (status_.commutationDone)
-    {
-        commutationButton_.set_sensitive(true);
-        motionButton_.set_sensitive(true);
-        status_.commutationDone = false;
-    }
-
     std::vector<std::string> messages = status_.messages;
     status_.messages.clear();
     status_.mutex.unlock();
+    if (status_.jobDone)
+    {
+        commutationButton_.set_sensitive(true);
+        motionButton_.set_sensitive(true);
+        status_.jobDone = false;
+        status_.isRunning = false;
+        motionButton_.set_label("Start");
+    }
 
     for (std::string s : messages)
         logTextView.get_buffer()->insert_at_cursor(s + "\n");

@@ -54,7 +54,25 @@ namespace nautilus
         commTimeout             = 0x53,
     };
 
-
+    enum class Mode{
+        Stopped     = 0,
+        Fault       = 0,
+        Enabling    = 0,
+        Calibrating = 3,
+        CalibrationComplete = 4,
+        Pwm = 5,
+        Voltage = 6,
+        VoltageFoc = 7,
+        VoltageDq = 8,
+        Current = 9,
+        Position = 10,
+        PositionTimeout = 11,
+        ZeroVelocity = 12,
+        StayWithinBounds = 13,
+        MeasureInductance = 14,
+        Brake = 15,
+        Velocity = 16,
+    };
 
     // Extra information about the registers, for the GUI.
     struct GUIRegister{

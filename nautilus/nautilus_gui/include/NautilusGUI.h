@@ -12,11 +12,11 @@
 
 
 enum class ControlMode{
-    POSITION = 0,
-    VELOCITY = 1,
+    VELOCITY = 0,
+    POSITION = 1,
     CURRENT = 2
 };
-static std::vector<std::string> CONTROL_MODES({"Position", "Velocity", "Current"});
+static std::vector<std::string> CONTROL_MODES({"Velocity", "Position", "Current"});
 
 enum class SignalType{
     SINUSOID = 0,
@@ -28,8 +28,8 @@ struct ThreadStatus
 {
     bool terminate = false;
     bool needToPerformCommutation = false;
-    bool commutationDone = false;
     bool isRunning = false;
+    bool jobDone = false;
     double commutationCurrent = 0.0;
     ControlMode controlMode;
     SignalType signalType;

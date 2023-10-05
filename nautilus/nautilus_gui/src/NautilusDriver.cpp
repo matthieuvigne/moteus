@@ -73,8 +73,13 @@ Nautilus::Nautilus(std::string const& portName, int const& frequency):
     portName_(portName),
     frequency_(frequency)
 {
+    fileDescriptor_ = spiOpen(portName_, frequency_);
 }
 
+Nautilus::~Nautilus()
+{
+    close(fileDescriptor_);
+}
 
 NautilusReply Nautilus::readRegister(Register const& reg)
 {
@@ -147,11 +152,8 @@ NautilusReply Nautilus::spiComm(uint8_t *buffer)
     spiCtrl.speed_hz = frequency_;
     spiCtrl.bits_per_word = 8;
     spiCtrl.delay_usecs = 1;
-    spiCtrl.cs_change = true;
 
-    int fd = spiOpen(portName_, frequency_);
-    int res = ioctl(fd, SPI_IOC_MESSAGE(1), &spiCtrl);
-    spiClose(fd);
+    int res = ioctl(fileDescriptor_, SPI_IOC_MESSAGE(1), &spiCtrl);
 
     NautilusReply reply;
     reply.encoderPosition = (buffer[0] << 8) + buffer[1];

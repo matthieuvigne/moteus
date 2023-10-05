@@ -32,7 +32,8 @@ namespace nautilus
     class Nautilus{
         public:
             /// \brief Constructor.
-            Nautilus(std::string const& portName, int const& frequency = 2000000);
+            Nautilus(std::string const& portName, int const& frequency = 1000000);
+            ~Nautilus();
 
             /// \brief Read a register
             NautilusReply readRegister(Register const& reg);
@@ -68,6 +69,8 @@ namespace nautilus
             std::string portName_;  ///< Name of the SPI port
             int frequency_; ///< Frequency, in Hz.
             std::mutex mutex_;
+
+            int fileDescriptor_;
     };
 }
 #endif
