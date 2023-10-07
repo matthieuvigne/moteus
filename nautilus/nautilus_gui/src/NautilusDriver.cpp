@@ -151,7 +151,7 @@ NautilusReply Nautilus::spiComm(uint8_t *buffer)
     spiCtrl.len = 8;
     spiCtrl.speed_hz = frequency_;
     spiCtrl.bits_per_word = 8;
-    spiCtrl.delay_usecs = 1;
+    spiCtrl.delay_usecs = 10;
 
     int res = ioctl(fileDescriptor_, SPI_IOC_MESSAGE(1), &spiCtrl);
 
@@ -166,13 +166,20 @@ NautilusReply Nautilus::spiComm(uint8_t *buffer)
     d += (uint32_t)(buffer[6]);
     reply.data = reinterpret_cast<float &>(d);
 
-    uint8_t checksum = buffer[0] + buffer[1] + buffer[2] + buffer[3] + buffer[4] + buffer[5] + buffer[6];
+    uint8_t const checksum = buffer[0] + buffer[1] + buffer[2] + buffer[3] + buffer[4] + buffer[5] + buffer[6];
 
     reply.isValid = res == 8 && buffer[7] == checksum;
     if (reply.isValid)
         nSuccess++;
     else
+    {
+
         nFailed++;
+        std::cout << "Transaction failed: ";
+        for (int i = 0; i < 8; i++)
+            std::cout << static_cast<int>(buffer[i]) << " ";
+        std::cout << "Expected checksum: " << static_cast<int>(checksum) << std::endl;
+    }
 
     mutex_.unlock();
     return reply;

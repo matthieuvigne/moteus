@@ -1,5 +1,3 @@
-/// A GUI to test  and configure the STS3215 servos of the robot
-
 #include <gtkmm/application.h>
 
 #include "NautilusGUI.h"

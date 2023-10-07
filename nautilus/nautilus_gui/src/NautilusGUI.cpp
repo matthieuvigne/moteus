@@ -70,7 +70,7 @@ void backgroundThread(ThreadStatus *status, nautilus::Nautilus *nautilus)
                 if (rep.isValid)
                     Teleplot::localhost().update("currentPhaseC", rep.data);
 
-                if (elapsedTime > 0.005)
+                if (elapsedTime > 0.050)
                 {
                     nautilus::Mode expectedMode;
                     switch(status->controlMode)
@@ -295,6 +295,7 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
     vBox->pack_start(*sep, Gtk::PACK_SHRINK);
     Gtk::ScrolledWindow *scroll = new Gtk::ScrolledWindow();
     vBox->pack_start(*scroll);
+    logTextView.set_editable(false);
     scroll->add(logTextView);
 
 

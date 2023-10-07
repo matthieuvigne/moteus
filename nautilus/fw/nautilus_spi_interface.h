@@ -71,7 +71,7 @@ enum SPICommand {
 };
 
 // Answer read query, return the 4 bytes to send.
-uint32_t processReadCommand(uint8_t const& registerAddress);
+void processReadCommand(uint8_t const& registerAddress, uint32_t & output);
 
 // Handle write query.
 void processWriteCommand(uint8_t const& registerAddress, uint32_t const& registerValue);

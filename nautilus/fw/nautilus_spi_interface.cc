@@ -3,8 +3,6 @@
 #include "fw/stm32g4_async_uart.h"
 #include "PeripheralPins.h"
 
-#define M_PI       3.14159265358979323846f
-
 using namespace nautilus;
 
 #define MESSAGE_LENGTH 8
@@ -30,9 +28,10 @@ mjlib::micro::PersistentConfig* persistent_config;
 // 8 bits, generate RXNEIE on half-full buffer (8 bits)
 #define SPICR2 0b0001011101001000
 
+float const ZERO = 0.0;
+float const MINUS_ONE = -1.0;
 
-// Blink led - debug
-USART_TypeDef* debug_uart_ = nullptr;
+// Led control
 uint16_t timeCnt = 0;
 int errorCnt = 0;
 
@@ -41,7 +40,10 @@ uint32_t timeoutCounter = 0;
 
 
 static DigitalOut statusLed(PF_0, 1);
-static DigitalOut errorLed(PF_1, 1);
+static DigitalOut errorLed (PF_1, 1);
+
+static DigitalOut debugLed1(PC_14, 1);
+static DigitalOut debugLed2(PC_15, 1);
 
 /*static DigitalOut statusLed(PF_0, 1);
 static bool isOn = true;
@@ -90,79 +92,65 @@ void NautilusSPIInterface::poll()
      }
 }
 
-uint32_t fToUInt(float const& f)
-{
-    union result{
-        float f;
-        uint32_t i;
-    };
-    union result res;
-    res.f = f;
-    return res.i;
-}
 
-float UIntToF(uint32_t const& i)
+void __attribute__ ((optimize("O3"))) nautilus::processReadCommand(uint8_t const& registerAddress, uint32_t&output)
 {
-    union result{
-        float f;
-        uint32_t i;
-    };
-    union result res;
-    res.i = i;
-    return res.f;
-}
-
-uint32_t nautilus::processReadCommand(uint8_t const& registerAddress)
-{
-
+    float res;
     switch (registerAddress)
     {
-    case SPIRegister::currentMode:          return bldc->status().mode;
-    case SPIRegister::faultCode:            return static_cast<uint32_t>(bldc->status().fault);
-    case SPIRegister::drvStatus:            return (static_cast<uint32_t>(drv8323->status()->fsr1) << 16) + static_cast<uint32_t>(drv8323->status()->fsr2);
-    case SPIRegister::drvConfigError:       return static_cast<uint32_t>(drv8323->status()->fault_config);
-    case SPIRegister::measuredPosition:     return fToUInt(static_cast<float>(bldc->motor_position().sources[0].filtered_value / bldc->motor_position_config()->sources[0].cpr * 2 * M_PI));
-    case SPIRegister::measuredVelocity:     return fToUInt(static_cast<float>(bldc->motor_position().sources[0].velocity / bldc->motor_position_config()->sources[0].cpr * 2 * M_PI));
-    case SPIRegister::measuredIQ:           return fToUInt(bldc->status().q_A);
-    case SPIRegister::measuredIPhaseA:      return fToUInt(bldc->status().cur1_A);
-    case SPIRegister::measuredIPhaseB:      return fToUInt(bldc->status().cur2_A);
-    case SPIRegister::measuredIPhaseC:      return fToUInt(bldc->status().cur3_A);
-    case SPIRegister::measuredUPhaseA:      return fToUInt(0.0);    // Not implemented for now
-    case SPIRegister::measuredUPhaseB:      return fToUInt(0.0);    // Not implemented for now
-    case SPIRegister::measuredUPhaseC:      return fToUInt(0.0);    // Not implemented for now
-    case SPIRegister::measuredMotTemp:      return fToUInt(bldc->config().enable_motor_temperature ? bldc->status().motor_temp_C : -1);
-    case SPIRegister::measuredDriveTemp:    return fToUInt(bldc->status().fet_temp_C);
-    case SPIRegister::measuredUBat:         return fToUInt(bldc->status().bus_V);
-    case SPIRegister::targetPosition:       return fToUInt(command->position);
-    case SPIRegister::targetVelocity:       return fToUInt(command->velocity);
-    case SPIRegister::targetIQ:             return fToUInt(command->i_q_A);
-    case SPIRegister::rawEncoderPos:        return bldc->motor_position().sources[0].raw;
-    case SPIRegister::encoderOrientation:   return bldc->motor()->phase_invert;
-    case SPIRegister::commutationOffset:    return fToUInt(bldc->motor()->offset[0]);
-    case SPIRegister::nbrOfPoles:           return bldc->motor()->poles;
-    case SPIRegister::currentLoopKp:        return fToUInt(bldc->config().pid_dq.kp);
-    case SPIRegister::currentLoopKi:        return fToUInt(bldc->config().pid_dq.ki);
-    case SPIRegister::currentLoopIntMax:    return 0;   // Not available, this loop has no anti-windup term.
-    case SPIRegister::velocityLoopKp:       return fToUInt(bldc->config().pid_velocity.kp);
-    case SPIRegister::velocityLoopKi:       return fToUInt(bldc->config().pid_velocity.ki);
-    case SPIRegister::velocityLoopIntMax:   return fToUInt(bldc->config().pid_velocity.ilimit);
-    case SPIRegister::positionLoopKp:       return fToUInt(bldc->config().pid_position.kp);
-    case SPIRegister::positionLoopKd:       return fToUInt(bldc->config().pid_position.kd);
-    case SPIRegister::positionLoopKi:       return fToUInt(bldc->config().pid_position.ki);
-    case SPIRegister::positionLoopIntMax:   return fToUInt(bldc->config().pid_position.ilimit);
-    case SPIRegister::motorMaxCurrent:      return fToUInt(bldc->config().max_current_A);
-    case SPIRegister::motorMaxTemperature:  return fToUInt(bldc->config().enable_motor_temperature ? bldc->config().motor_fault_temperature : -1);
-    case SPIRegister::driverMaxTemperature: return fToUInt(bldc->config().fault_temperature);
-    case SPIRegister::commTimeout:          return timeoutMs;
-    default:                                return 0;
+    case SPIRegister::currentMode:          output = bldc->status().mode; break;
+    case SPIRegister::faultCode:            output = static_cast<uint32_t>(bldc->status().fault); break;
+    case SPIRegister::drvStatus:            output = (static_cast<uint32_t>(drv8323->status()->fsr1) << 16) + static_cast<uint32_t>(drv8323->status()->fsr2); break;
+    case SPIRegister::drvConfigError:       output = static_cast<uint32_t>(drv8323->status()->fault_config); break;
+    case SPIRegister::measuredPosition:
+        res = bldc->motor_position().sources[0].filtered_value * bldc->motor_position_config()->sources[0].countToRad;
+        std::memcpy(&output, &res, 4);
+        break;
+    case SPIRegister::measuredVelocity:
+        res = bldc->motor_position().sources[0].velocity * bldc->motor_position_config()->sources[0].countToRad;
+        std::memcpy(&output, &res, 4);
+        break;
+    case SPIRegister::measuredIQ:           std::memcpy(&output, &bldc->status().q_A, 4); break;
+    case SPIRegister::measuredIPhaseA:      std::memcpy(&output, &bldc->status().cur1_A, 4); break;
+    case SPIRegister::measuredIPhaseB:      std::memcpy(&output, &bldc->status().cur2_A, 4); break;
+    case SPIRegister::measuredIPhaseC:      std::memcpy(&output, &bldc->status().cur3_A, 4); break;
+    case SPIRegister::measuredUPhaseA:      std::memcpy(&output, &ZERO, 4); break;    // Not implemented for now
+    case SPIRegister::measuredUPhaseB:      std::memcpy(&output, &ZERO, 4); break;   // Not implemented for now
+    case SPIRegister::measuredUPhaseC:      std::memcpy(&output, &ZERO, 4); break;    // Not implemented for now
+    case SPIRegister::measuredMotTemp:      std::memcpy(&output, bldc->config().enable_motor_temperature ? &bldc->status().motor_temp_C : &MINUS_ONE, 4); break;
+    case SPIRegister::measuredDriveTemp:    std::memcpy(&output, &bldc->status().fet_temp_C, 4); break;
+    case SPIRegister::measuredUBat:         std::memcpy(&output, &bldc->status().bus_V, 4); break;
+    case SPIRegister::targetPosition:       std::memcpy(&output, &command->position, 4); break;
+    case SPIRegister::targetVelocity:       std::memcpy(&output, &command->velocity, 4); break;
+    case SPIRegister::targetIQ:             std::memcpy(&output, &command->i_q_A, 4); break;
+    case SPIRegister::rawEncoderPos:        output = bldc->motor_position().sources[0].raw; break;
+    case SPIRegister::encoderOrientation:   output = bldc->motor()->phase_invert; break;
+    case SPIRegister::commutationOffset:    std::memcpy(&output, &bldc->motor()->offset[0], 4); break;
+    case SPIRegister::nbrOfPoles:           output = bldc->motor()->poles; break;
+    case SPIRegister::currentLoopKp:        std::memcpy(&output, &bldc->config().pid_dq.kp, 4); break;
+    case SPIRegister::currentLoopKi:        std::memcpy(&output, &bldc->config().pid_dq.ki, 4); break;
+    case SPIRegister::currentLoopIntMax:    output = 0; break;   // Not available, this loop has no anti-windup term.
+    case SPIRegister::velocityLoopKp:       std::memcpy(&output, &bldc->config().pid_velocity.kp, 4); break;
+    case SPIRegister::velocityLoopKi:       std::memcpy(&output, &bldc->config().pid_velocity.ki, 4); break;
+    case SPIRegister::velocityLoopIntMax:   std::memcpy(&output, &bldc->config().pid_velocity.ilimit, 4); break;
+    case SPIRegister::positionLoopKp:       std::memcpy(&output, &bldc->config().pid_position.kp, 4); break;
+    case SPIRegister::positionLoopKd:       std::memcpy(&output, &bldc->config().pid_position.kd, 4); break;
+    case SPIRegister::positionLoopKi:       std::memcpy(&output, &bldc->config().pid_position.ki, 4); break;
+    case SPIRegister::positionLoopIntMax:   std::memcpy(&output, &bldc->config().pid_position.ilimit, 4); break;
+    case SPIRegister::motorMaxCurrent:      std::memcpy(&output, &bldc->config().max_current_A, 4); break;
+    case SPIRegister::motorMaxTemperature:  std::memcpy(&output, &bldc->config().enable_motor_temperature ? &bldc->config().motor_fault_temperature : &MINUS_ONE, 4); break;
+    case SPIRegister::driverMaxTemperature: std::memcpy(&output, &bldc->config().fault_temperature, 4); break;
+    case SPIRegister::commTimeout:          output = timeoutMs; break;
+    default:                                output = 0; break;
     }
 }
 
 // Handle write query.
-void nautilus::processWriteCommand(uint8_t const& registerAddress, uint32_t const& registerValue)
+void __attribute__ ((optimize("O3"))) nautilus::processWriteCommand(uint8_t const& registerAddress, uint32_t const& registerValue)
 {
     // Basic register settings
-    float const fRegisterValue =  UIntToF(registerValue);
+    float fRegisterValue;
+    std::memcpy(&fRegisterValue, &registerValue, 4);
     switch (registerAddress)
     {
         case SPIRegister::currentLoopKp:        bldc->config().pid_dq.kp = fRegisterValue; break;
@@ -212,8 +200,10 @@ void nautilus::processWriteCommand(uint8_t const& registerAddress, uint32_t cons
 // Avoid C++ name-mangling
 extern "C" {
 
-void SPI3_IRQHandler(void)
+void __attribute__ ((optimize("O3"))) SPI3_IRQHandler(void)
 {
+    // Interrput last typically <500ns, except when processing read commands
+    // where it lasts up to 1500ns.
     // Read data
     rxBuffer[posInMessage] = SPI3->DR;
 
@@ -244,7 +234,7 @@ void SPI3_IRQHandler(void)
                     uint32_t i;
                 };
                 uint32_t const theta = ((rxBuffer[1] << 24) + (rxBuffer[2] << 16) + (rxBuffer[3] << 8) + (rxBuffer[4]));
-                command->theta = UIntToF(theta);
+                std::memcpy(&command->theta, &theta, 4);
                 command->theta_rate = 0;
                 uint16_t const voltageRatio = (rxBuffer[5] << 8) + rxBuffer[6];
                 command->voltage = (static_cast<float_t>(voltageRatio) / 65535.0f) * bldc->status().bus_V;
@@ -272,27 +262,31 @@ void SPI3_IRQHandler(void)
     if (posInMessage < MESSAGE_LENGTH - 1)
         posInMessage ++;
 
-    if (posInMessage == 3)
+    if (posInMessage == 2)
     {
         // We have received enough info from the user to know what to do.
         uint32_t data = 0;
         if (rxBuffer[0] == static_cast<uint8_t>(SPICommand::regRead))
         {
             // Handle read request
-            data = nautilus::processReadCommand(rxBuffer[1]);
+            nautilus::processReadCommand(rxBuffer[1], data);
         }
 
-        // Send next 4 bytes.
+        // Send next byte.
         txBuffer[3] = (data >> 24) & 0xFF;
         txBuffer[4] = (data >> 16) & 0xFF;
         txBuffer[5] = (data >> 8) & 0xFF;
         txBuffer[6] = (data) & 0xFF;
         * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) txBuffer[3];
+    }
+    else if (posInMessage == 3)
+    {
+        // Send the rest of the data content.
         * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) txBuffer[4];
         * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) txBuffer[5];
         * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) txBuffer[6];
     }
-    if (posInMessage == 4)
+    else if (posInMessage == 4)
     {
         // Send last element: CRC
         uint8_t const crc = txBuffer[0] + txBuffer[1] + txBuffer[2] + txBuffer[3] +\
@@ -302,8 +296,9 @@ void SPI3_IRQHandler(void)
 }
 
 
-void EXTI15_10_IRQHandler(void)
+void __attribute__ ((optimize("O3"))) EXTI15_10_IRQHandler(void)
 {
+    // Interrupt duration: 150ns (spi end), 400-600ns (SPI start)
     /* Clear interrupt flag*/
     EXTI->PR1 |= (1 << 15);
 
@@ -329,9 +324,9 @@ void EXTI15_10_IRQHandler(void)
         // Check valid reading
         if (bldc->aux2().i2c.devices[0].ams_diag == 0x01)
             encVal |= 1 << 15;
-        // Third byte: status
         txBuffer[0] = (encVal >> 8) & 0xFF;
         txBuffer[1] = encVal & 0xFF;
+        // Third byte: status
         txBuffer[2] = bldc->status().mode;
 
         * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) txBuffer[0];
@@ -345,11 +340,6 @@ void EXTI15_10_IRQHandler(void)
 
 void NautilusSPIInterface::setup()
 {
-    const auto uart = pinmap_peripheral(
-        PC_10_ALT0, PinMap_UART_TX);
-    debug_uart_ = reinterpret_cast<USART_TypeDef*>(uart);
-
-    // led1_ = 0;
     spi_t spi;
     spi_init(&spi,
               PB_5_ALT0, // MOSI

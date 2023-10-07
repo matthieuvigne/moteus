@@ -71,7 +71,7 @@ struct MoteusHwPins {
 
   PinName debug1 = NC;
   PinName debug2 = NC;
-  PinName debug_dac = PA_4;
+  PinName debug_dac = NC;
 
   uint32_t model_number = 0;
 

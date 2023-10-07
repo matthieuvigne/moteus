@@ -313,7 +313,6 @@ class BldcServo::Impl {
         tsense_sqr_(FindSqr(options.tsense)),
         msense_(options.msense),
         msense_sqr_(FindSqr(options.msense)),
-        debug_dac_(options.debug_dac),
 #ifdef MOTEUS_DEBUG_OUT
         debug_out_(options.debug_out),
 #endif
@@ -2347,8 +2346,6 @@ private:
   uint32_t tsense_sqr_ = {};
   AnalogIn msense_;
   uint32_t msense_sqr_ = {};
-
-  AnalogOut debug_dac_;
 
 #ifdef MOTEUS_DEBUG_OUT
   // This is just for debugging.

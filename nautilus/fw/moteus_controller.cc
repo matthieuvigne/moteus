@@ -371,8 +371,8 @@ aux::AuxHardwareConfig GetAux2HardwareConfig() {
           //          ADC#  CHN    I2C      SPI      USART    TIMER
           { 0, PB_8,   -1,   0,    I2C1,    nullptr, USART3,  nullptr },
           { 1, PB_9,   -1,   0,    I2C1,    nullptr, USART3,  nullptr },
-          { 2, PC_14,  -1,   0,    nullptr, nullptr, nullptr, nullptr },
-          { 3, PC_15,  -1,   0,    nullptr, nullptr, nullptr, nullptr },
+          { 2, NC,  -1,   0,    nullptr, nullptr, nullptr, nullptr },
+          { 3, NC,  -1,   0,    nullptr, nullptr, nullptr, nullptr },
           { -1, NC, },
               }},
           aux_options,
