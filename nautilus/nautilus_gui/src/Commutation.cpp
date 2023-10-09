@@ -173,6 +173,8 @@ void performCommutation(nautilus::Nautilus *nautilus, ThreadStatus *status)
     float offset = zeroPos * (nPoles / 2);
     while (offset > 2 * M_PI)
         offset -= 2 * M_PI;
+    while (offset < 0)
+        offset += 2 * M_PI;
 
     // Save results
     nautilus->writeRegister(nautilus::Register::encoderOrientation, isInverted);

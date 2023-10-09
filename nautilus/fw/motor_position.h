@@ -30,8 +30,6 @@
 #include "fw/ccm.h"
 #include "fw/math.h"
 
-#define TWO_PI       6.283185307179586f
-
 namespace moteus {
 
 class MotorPosition {
@@ -63,7 +61,6 @@ class MotorPosition {
     int8_t incremental_index = -1;
 
     uint32_t cpr = 16384;
-    float countToRad = TWO_PI / static_cast<float>(16384);
     float offset = 0.0f;
     int8_t sign = 1;
     int32_t debug_override = -1;
@@ -440,12 +437,10 @@ class MotorPosition {
           // require the CPR to be directly related to the motor pole
           // count.
           source_config.cpr = kHallCounts * motor_.poles / 2;
-          source_config.countToRad = TWO_PI / static_cast<float>(source_config.cpr);
           break;
         }
         case SourceConfig::kSineCosine: {
           source_config.cpr = 65536;
-          source_config.countToRad = TWO_PI / static_cast<float>(source_config.cpr);
           break;
         }
         case SourceConfig::kIndex: {

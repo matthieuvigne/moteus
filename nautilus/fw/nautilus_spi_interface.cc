@@ -5,6 +5,8 @@
 
 using namespace nautilus;
 
+#define TWO_PI       6.283185307179586f
+
 #define MESSAGE_LENGTH 8
 
 uint8_t rxBuffer[MESSAGE_LENGTH] = {0};
@@ -103,11 +105,11 @@ void __attribute__ ((optimize("O3"))) nautilus::processReadCommand(uint8_t const
     case SPIRegister::drvStatus:            output = (static_cast<uint32_t>(drv8323->status()->fsr1) << 16) + static_cast<uint32_t>(drv8323->status()->fsr2); break;
     case SPIRegister::drvConfigError:       output = static_cast<uint32_t>(drv8323->status()->fault_config); break;
     case SPIRegister::measuredPosition:
-        res = bldc->motor_position().sources[0].filtered_value * bldc->motor_position_config()->sources[0].countToRad;
+        res = TWO_PI * bldc->motor_position().position;
         std::memcpy(&output, &res, 4);
         break;
     case SPIRegister::measuredVelocity:
-        res = bldc->motor_position().sources[0].velocity * bldc->motor_position_config()->sources[0].countToRad;
+        res = TWO_PI * bldc->motor_position().velocity;
         std::memcpy(&output, &res, 4);
         break;
     case SPIRegister::measuredIQ:           std::memcpy(&output, &bldc->status().q_A, 4); break;
@@ -171,14 +173,15 @@ void __attribute__ ((optimize("O3"))) nautilus::processWriteCommand(uint8_t cons
             break;
         case SPIRegister::targetPosition:
             command->mode = moteus::kPosition;
-            command->position = fRegisterValue;
+            command->position = fRegisterValue / TWO_PI;
+            command->velocity = 0.0;
 
             timeoutCounter = timeoutMs;
             bldc->Command(*command);
             break;
         case SPIRegister::targetVelocity:
             command->mode = moteus::kVelocity;
-            command->velocity = fRegisterValue;
+            command->velocity = fRegisterValue / TWO_PI;
 
             timeoutCounter = timeoutMs;
             bldc->Command(*command);
@@ -228,11 +231,6 @@ void __attribute__ ((optimize("O3"))) SPI3_IRQHandler(void)
             else if (rxBuffer[0] == static_cast<uint8_t>(SPICommand::commutation))
             {
                 command->mode = moteus::kVoltageFoc;
-
-                union result{
-                    float f;
-                    uint32_t i;
-                };
                 uint32_t const theta = ((rxBuffer[1] << 24) + (rxBuffer[2] << 16) + (rxBuffer[3] << 8) + (rxBuffer[4]));
                 std::memcpy(&command->theta, &theta, 4);
                 command->theta_rate = 0;

@@ -22,31 +22,51 @@ void backgroundThread(ThreadStatus *status, nautilus::Nautilus *nautilus)
         }
         else
         {
-
             struct timespec startTime, currentTime;
             clock_gettime(CLOCK_MONOTONIC, &startTime);
+            double startPosition = 0;
+            double interpolationSpeed = 10.0;
+            double interpolationDuration = 0.0;
+            if (status->controlMode == ControlMode::POSITION)
+            {
+                // In position mode, perform an interpolation.
+                nautilus::NautilusReply rep;
+                while (!rep.isValid)
+                    rep = nautilus->readRegister(nautilus::Register::measuredPosition);
+                startPosition = rep.data;
+                if (startPosition > status->offset)
+                    interpolationSpeed = -interpolationSpeed;
+                interpolationDuration = (status->offset - startPosition) / interpolationSpeed;
+            }
             while (status->isRunning && !status->terminate && !status->jobDone)
             {
                 clock_gettime(CLOCK_MONOTONIC, &currentTime);
                 double elapsedTime = currentTime.tv_sec - startTime.tv_sec + (currentTime.tv_nsec - startTime.tv_nsec) / 1.0e9;
 
                 float target = 0.0;
-                switch(status->signalType)
+                if (elapsedTime < interpolationDuration)
                 {
-                    case SignalType::SINUSOID:
-                        target = status->amplitude * std::sin(2 * M_PI * status->frequency * elapsedTime) + status->offset;
-                        break;
-                    case SignalType::CONSTANT:
-                        target = status->offset;
-                        break;
-                    default: break;
+                    target = startPosition + interpolationSpeed * elapsedTime;
+                }
+                else
+                {
+                    switch(status->signalType)
+                    {
+                        case SignalType::SINUSOID:
+                            target = status->amplitude * std::sin(2 * M_PI * status->frequency * (elapsedTime - interpolationDuration)) + status->offset;
+                            break;
+                        case SignalType::CONSTANT:
+                            target = status->offset;
+                            break;
+                        default: break;
+                    }
                 }
 
                 switch(status->controlMode)
                 {
                     case ControlMode::CURRENT: nautilus->writeRegister(nautilus::Register::targetIQ, target); break;
-                    case ControlMode::VELOCITY: nautilus->writeRegister(nautilus::Register::targetVelocity, static_cast<float>(target / 2 / M_PI)); break;
-                    case ControlMode::POSITION: nautilus->writeRegister(nautilus::Register::targetPosition, static_cast<float>(target / 2 / M_PI)); break;
+                    case ControlMode::VELOCITY: nautilus->writeRegister(nautilus::Register::targetVelocity, static_cast<float>(target)); break;
+                    case ControlMode::POSITION: nautilus->writeRegister(nautilus::Register::targetPosition, static_cast<float>(target)); break;
                     default: break;
                 }
 

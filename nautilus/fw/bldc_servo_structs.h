@@ -562,10 +562,10 @@ struct BldcServoConfig {
     pid_dq.kp = 0.001f;
     pid_dq.ki = 100.0f;
 
-    pid_position.kp = 0.2f;
-    pid_position.ki = 1.0f;
+    pid_position.kp = 0.07f;
+    pid_position.ki = 0.0f;
     pid_position.ilimit = 0.0f;
-    pid_position.kd = 0.05f;
+    pid_position.kd = 0.0005f;
     pid_position.sign = -1.0f;
 
     pid_velocity.kp = 0.003f;
