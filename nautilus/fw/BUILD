@@ -51,6 +51,8 @@ cc_library(
         "@com_github_mjbots_mjlib//mjlib/micro:error_code",
         "@com_github_mjbots_mjlib//mjlib/micro:persistent_config",
         "@com_github_mjbots_mjlib//mjlib/micro:telemetry_manager",
+        "@com_github_mjbots_mjlib//mjlib/micro:event_queue",
+        "@com_github_mjbots_mjlib//mjlib/micro:stream_pipe",
     ],
     copts = COPTS,
 )

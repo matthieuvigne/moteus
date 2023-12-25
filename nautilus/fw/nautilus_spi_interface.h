@@ -60,6 +60,8 @@ enum SPIRegister {
     motorMaxTemperature  = 0x51,       // float32_t
     driverMaxTemperature = 0x52,       // float32_t
     commTimeout          = 0x53,       // uint16_t
+
+    firmwareVersion      = 0xFF,       // uint32_t
 };
 
 enum SPICommand {
@@ -81,7 +83,8 @@ class NautilusSPIInterface {
     NautilusSPIInterface(moteus::BldcServo* bldc,
                          moteus::BldcServo::CommandData* command,
                          moteus::Drv8323* drv8323,
-                         mjlib::micro::PersistentConfig* config);
+                         mjlib::micro::EventQueue* config_queue,
+                         mjlib::micro::AsyncStream* config_stream);
 
     void setup();
     void poll();

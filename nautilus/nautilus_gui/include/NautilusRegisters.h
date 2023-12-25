@@ -52,6 +52,8 @@ namespace nautilus
         motorMaxTemperature     = 0x51,
         driverMaxTemperature    = 0x52,
         commTimeout             = 0x53,
+
+        firmwareVersion         = 0xFF,
     };
 
     enum class Mode{
@@ -131,6 +133,8 @@ namespace nautilus
         GUIRegister(Register::motorMaxTemperature, "Motor max temperature", true, true),
         GUIRegister(Register::driverMaxTemperature, "Driver max temperature", true, true),
         GUIRegister(Register::commTimeout, "Communication timeout ms", false, true),
+
+        GUIRegister(Register::firmwareVersion, "Firmware version", false, false),
     });
 
 

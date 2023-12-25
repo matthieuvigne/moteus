@@ -205,10 +205,10 @@ MoteusHwPins FindHardwarePins(FamilyAndVersion fv) {
     result.vsense_adc_scale =
         (hv <= 5 ? 0.00884f : 0.017947f);
 
-    result.uart_tx = PC_10_ALT0;
-    result.uart_rx = PC_11_ALT0;
+    result.uart_tx = PB_10;
+    result.uart_rx = NC;
 
-    result.drv8323_enable = PA_3;
+    result.drv8323_enable = PC_15;  // nautilus v2.0 modification
     result.drv8323_hiz = PB_7;
     result.drv8323_cs = PC_13; // nautilus v1.0 modification
 
@@ -227,13 +227,13 @@ MoteusHwPins FindHardwarePins(FamilyAndVersion fv) {
     result.current2 = PB_1;
     result.current3 = PB_2;
 
-    result.as5047_cs = PB_10; // nautilus v1.0 modification
+    result.as5047_cs = PA_10; // nautilus v2.0 modification
 
     result.can_td = PA_12;
     result.can_rd = PA_11;
 
     result.debug1 = PC_14;
-    result.debug2 = PC_15;
+    result.debug2 = NC;
   } else {
     result.drv8323_enable = PC_14;
     result.drv8323_hiz = PC_15;

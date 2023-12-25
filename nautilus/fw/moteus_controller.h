@@ -16,6 +16,7 @@
 
 #include "mjlib/micro/async_stream.h"
 #include "mjlib/micro/pool_ptr.h"
+#include "mjlib/micro/event_queue.h"
 #include "mjlib/multiplex/micro_server.h"
 
 #include "fw/bldc_servo.h"
@@ -34,6 +35,8 @@ class MoteusController {
   MoteusController(mjlib::micro::Pool*,
                    mjlib::micro::PersistentConfig* config,
                    mjlib::micro::CommandManager* command_manager,
+                   mjlib::micro::EventQueue*,
+                   mjlib::micro::AsyncStream*,
                    mjlib::micro::TelemetryManager* telemetry_manager,
                    mjlib::multiplex::MicroServer* multiplex_protocol,
                    ClockManager*,

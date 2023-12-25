@@ -23,6 +23,7 @@
 #include "mjlib/micro/command_manager.h"
 #include "mjlib/micro/persistent_config.h"
 #include "mjlib/micro/telemetry_manager.h"
+#include "mjlib/micro/stream_pipe.h"
 #include "mjlib/multiplex/micro_server.h"
 #include "mjlib/multiplex/micro_stream_datagram.h"
 
@@ -232,10 +233,15 @@ int main(void) {
         return options;
       }());
 
-  micro::AsyncStream* serial = multiplex_protocol.MakeTunnel(1);
+  // micro::AsyncStream* serial = multiplex_protocol.MakeTunnel(1);
 
-  micro::AsyncExclusive<micro::AsyncWriteStream> write_stream(serial);
-  micro::CommandManager command_manager(&pool, serial, &write_stream);
+  // micro::AsyncExclusive<micro::AsyncWriteStream> write_stream(serial);
+
+  micro::EventQueue event_queue;
+  micro::StreamPipe pipe{event_queue.MakePoster()};
+  micro::AsyncExclusive<micro::AsyncWriteStream> write_stream{pipe.side_a()};
+
+  micro::CommandManager command_manager(&pool, pipe.side_a(), &write_stream);
   char micro_output_buffer[2048] = {};
   micro::TelemetryManager telemetry_manager(
       &pool, &command_manager, &write_stream, micro_output_buffer);
@@ -252,6 +258,8 @@ int main(void) {
   MoteusController moteus_controller(
       &pool, &persistent_config,
       &command_manager,
+      &event_queue,
+      pipe.side_b(),
       &telemetry_manager,
       &multiplex_protocol,
       &clock,

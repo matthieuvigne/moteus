@@ -405,6 +405,8 @@ class MoteusController::Impl : public multiplex::MicroServer::Server {
   Impl(micro::Pool* pool,
        micro::PersistentConfig* persistent_config,
        micro::CommandManager* command_manager,
+       micro::EventQueue* config_queue,
+       micro::AsyncStream* config_stream,
        micro::TelemetryManager* telemetry_manager,
        multiplex::MicroServer* multiplex_protocol,
        ClockManager* clock_manager,
@@ -468,7 +470,7 @@ class MoteusController::Impl : public multiplex::MicroServer::Server {
         clock_manager_(clock_manager),
         system_info_(system_info),
         firmware_(firmware),
-        nautilusSPI_(&bldc_, &command_, &drv8323_, persistent_config)
+        nautilusSPI_(&bldc_, &command_, &drv8323_, config_queue, config_stream)
   {}
 
   void Start() {
@@ -1028,13 +1030,15 @@ class MoteusController::Impl : public multiplex::MicroServer::Server {
 MoteusController::MoteusController(micro::Pool* pool,
                                    micro::PersistentConfig* persistent_config,
                                    micro::CommandManager* command_manager,
+                                   micro::EventQueue* config_queue,
+                                   micro::AsyncStream* config_stream,
                                    micro::TelemetryManager* telemetry_manager,
                                    multiplex::MicroServer* multiplex_protocol,
                                    ClockManager* clock_manager,
                                    SystemInfo* system_info,
                                    MillisecondTimer* timer,
                                    FirmwareInfo* firmware)
-    : impl_(pool, pool, persistent_config, command_manager, telemetry_manager,
+    : impl_(pool, pool, persistent_config, command_manager, config_queue, config_stream, telemetry_manager,
             multiplex_protocol, clock_manager, system_info, timer, firmware) {}
 
 MoteusController::~MoteusController() {}

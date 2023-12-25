@@ -32,7 +32,7 @@ namespace nautilus
     class Nautilus{
         public:
             /// \brief Constructor.
-            Nautilus(std::string const& portName, int const& frequency = 8000000);
+            Nautilus(std::string const& portName, int const& frequency = 4000000);
             ~Nautilus();
 
             /// \brief Read a register

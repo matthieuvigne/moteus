@@ -5,6 +5,8 @@
 
 using namespace nautilus;
 
+#define FIRMWARE_VERSION 90
+
 #define TWO_PI       6.283185307179586f
 
 #define MESSAGE_LENGTH 8
@@ -17,7 +19,9 @@ uint8_t posInMessage = 0;   // Current position in the message
 moteus::BldcServo::CommandData* command;
 moteus::BldcServo* bldc;
 moteus::Drv8323* drv8323;
-mjlib::micro::PersistentConfig* persistent_config;
+// mjlib::micro::PersistentConfig* persistent_config;
+mjlib::micro::EventQueue* config_queue;
+mjlib::micro::AsyncStream* config_stream;
 
 // SPI3 configuration
 // Slave mode 3
@@ -60,12 +64,14 @@ else
 NautilusSPIInterface::NautilusSPIInterface(moteus::BldcServo* bldcIn,
                                            moteus::BldcServo::CommandData* commandIn,
                                            moteus::Drv8323* drv8323In,
-                                           mjlib::micro::PersistentConfig* config)
+                                           mjlib::micro::EventQueue* cqueue,
+                                           mjlib::micro::AsyncStream* config)
 {
     command = commandIn;
     bldc = bldcIn;
     drv8323 = drv8323In;
-    persistent_config = config;
+    config_queue = cqueue;
+    config_stream = config;
 }
 
 void NautilusSPIInterface::poll()
@@ -143,6 +149,7 @@ void __attribute__ ((optimize("O3"))) nautilus::processReadCommand(uint8_t const
     case SPIRegister::motorMaxTemperature:  std::memcpy(&output, &bldc->config().enable_motor_temperature ? &bldc->config().motor_fault_temperature : &MINUS_ONE, 4); break;
     case SPIRegister::driverMaxTemperature: std::memcpy(&output, &bldc->config().fault_temperature, 4); break;
     case SPIRegister::commTimeout:          output = timeoutMs; break;
+    case SPIRegister::firmwareVersion:      output = FIRMWARE_VERSION; break;
     default:                                output = 0; break;
     }
 }
@@ -213,8 +220,8 @@ void __attribute__ ((optimize("O3"))) SPI3_IRQHandler(void)
     if (posInMessage == MESSAGE_LENGTH - 1)
     {
         // Check CRC
-        uint8_t const crc = rxBuffer[0] + rxBuffer[1] + rxBuffer[2] + rxBuffer[3] +\
-                            rxBuffer[4] + rxBuffer[5] + rxBuffer[6];
+        uint8_t const crc = ~(rxBuffer[0] + rxBuffer[1] + rxBuffer[2] + rxBuffer[3] +\
+                              rxBuffer[4] + rxBuffer[5] + rxBuffer[6]);
         if (crc != rxBuffer[7])
         {
             errorCnt = 500;
@@ -245,7 +252,12 @@ void __attribute__ ((optimize("O3"))) SPI3_IRQHandler(void)
                 mjlib::micro::CommandManager::Response response;
                 // Note: for this to work, PersistentConfig.Write must be exposed.
                 // TODO FIXME: calling this here cause the uC to hang. But the config is still saved...
-                persistent_config->Write(response);
+                // persistent_config->Write(response);
+                // config_stream->("conf write\n")
+                // mjlib::micro::RequiredSuccess required_success;
+                mjlib::micro::ErrorCallback cb = [](mjlib::micro::error_code) {};
+                mjlib::micro::AsyncWrite(*config_stream, "conf write\n", cb);
+                config_queue->Poll();
             }
             else if (rxBuffer[0] == static_cast<uint8_t>(SPICommand::stop))
             {
@@ -287,8 +299,8 @@ void __attribute__ ((optimize("O3"))) SPI3_IRQHandler(void)
     else if (posInMessage == 4)
     {
         // Send last element: CRC
-        uint8_t const crc = txBuffer[0] + txBuffer[1] + txBuffer[2] + txBuffer[3] +\
-                            txBuffer[4] + txBuffer[5] + txBuffer[6];
+        uint8_t const crc = ~(txBuffer[0] + txBuffer[1] + txBuffer[2] + txBuffer[3] +\
+                              txBuffer[4] + txBuffer[5] + txBuffer[6]);
         * ((__IO uint8_t *) & SPI3->DR) = (uint8_t) crc;
     }
 }

@@ -285,7 +285,7 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
     header = new Gtk::Label("Signal offset:");
     hBox->pack_start(*header);
     motionOffset_.set_range(-500.0, 500.0);
-    motionOffset_.set_value(1.0);
+    motionOffset_.set_value(0.0);
     motionOffset_.set_increments(0.1, 1);
     motionOffset_.set_digits(2);
     motionOffset_.set_width_chars(4);
@@ -297,7 +297,7 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
     header = new Gtk::Label("Signal amplitude:");
     hBox->pack_start(*header, Gtk::PACK_SHRINK);
     motionAmplitude_.set_range(0.01, 500.0);
-    motionAmplitude_.set_value(1.0);
+    motionAmplitude_.set_value(20.0);
     motionAmplitude_.set_increments(0.1, 1);
     motionAmplitude_.set_digits(2);
     motionAmplitude_.set_width_chars(4);

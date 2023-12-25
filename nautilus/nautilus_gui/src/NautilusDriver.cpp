@@ -143,7 +143,7 @@ NautilusReply Nautilus::spiComm(uint8_t *buffer)
 {
     mutex_.lock();
     // Compute checksum
-    buffer[7] = buffer[0] + buffer[1] + buffer[2] + buffer[3] + buffer[4] + buffer[5] + buffer[6];
+    buffer[7] = ~(buffer[0] + buffer[1] + buffer[2] + buffer[3] + buffer[4] + buffer[5] + buffer[6]);
 
     static struct spi_ioc_transfer spiCtrl;
     spiCtrl.tx_buf = (unsigned long)&buffer[0];
@@ -166,7 +166,7 @@ NautilusReply Nautilus::spiComm(uint8_t *buffer)
     d += (uint32_t)(buffer[6]);
     reply.data = reinterpret_cast<float &>(d);
 
-    uint8_t const checksum = buffer[0] + buffer[1] + buffer[2] + buffer[3] + buffer[4] + buffer[5] + buffer[6];
+    uint8_t const checksum = ~(buffer[0] + buffer[1] + buffer[2] + buffer[3] + buffer[4] + buffer[5] + buffer[6]);
 
     reply.isValid = res == 8 && buffer[7] == checksum;
     if (reply.isValid)
