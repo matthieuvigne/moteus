@@ -6210,7 +6210,7 @@
     (property "Reference" "R15" (at 121.92 128.016 0)
       (effects (font (size 1.016 1.016)) (justify left top))
     )
-    (property "Value" "2k" (at 121.92 131.064 0)
+    (property "Value" "5.1k" (at 121.92 131.064 0)
       (effects (font (size 1.016 1.016)) (justify left bottom))
     )
     (property "Footprint" "Resistor_SMD:R_0402_1005Metric_Pad0.72x0.64mm_HandSolder" (at 117.602 129.54 90)
