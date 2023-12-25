@@ -5,7 +5,7 @@
 
 using namespace nautilus;
 
-#define FIRMWARE_VERSION 90
+#define FIRMWARE_VERSION 100
 
 #define TWO_PI       6.283185307179586f
 
@@ -249,12 +249,9 @@ void __attribute__ ((optimize("O3"))) SPI3_IRQHandler(void)
             }
             else if (rxBuffer[0] == static_cast<uint8_t>(SPICommand::storeToPersistentMemory))
             {
-                mjlib::micro::CommandManager::Response response;
-                // Note: for this to work, PersistentConfig.Write must be exposed.
-                // TODO FIXME: calling this here cause the uC to hang. But the config is still saved...
-                // persistent_config->Write(response);
-                // config_stream->("conf write\n")
-                // mjlib::micro::RequiredSuccess required_success;
+                // Note: for some reason this only works once, then the uC must be rebooted.
+                // But this is good enough: writing the config is typically only needed for commutation,
+                // so doing it once works well enough.
                 mjlib::micro::ErrorCallback cb = [](mjlib::micro::error_code) {};
                 mjlib::micro::AsyncWrite(*config_stream, "conf write\n", cb);
                 config_queue->Poll();

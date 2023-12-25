@@ -11,6 +11,8 @@
 
 All new files are in the `nautilus` folder.
 
+![](nautilus/pcb_picture.jpg)
+
 # moteus brushless servo #
 
 This contains full designs for the moteus brushless servo actuator,

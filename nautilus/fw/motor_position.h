@@ -71,7 +71,7 @@ class MotorPosition {
     };
     Reference reference = kRotor;
 
-    float pll_filter_hz = 400.0;
+    float pll_filter_hz = 100.0;
 
     // The CPR for this source is subdivided into N equal segments.
     // This table specifies a fraction of CPR that should be applied
