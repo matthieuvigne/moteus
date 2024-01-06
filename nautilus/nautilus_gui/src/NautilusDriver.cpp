@@ -139,6 +139,28 @@ NautilusReply Nautilus::spiComm(uint8_t command, uint8_t address, uint32_t data)
 }
 
 
+void Nautilus::sendInvalidCommand()
+{
+    mutex_.lock();
+
+    uint8_t buffer[8];
+    for (int i = 0; i<7; i++)
+        buffer[i] = 1;
+    buffer[7] = 42; // Invalid checksum
+
+    static struct spi_ioc_transfer spiCtrl;
+    spiCtrl.tx_buf = (unsigned long)&buffer[0];
+    spiCtrl.rx_buf = (unsigned long)&buffer[0];
+    spiCtrl.len = 8;
+    spiCtrl.speed_hz = frequency_;
+    spiCtrl.bits_per_word = 8;
+    spiCtrl.delay_usecs = 0;
+
+    ioctl(fileDescriptor_, SPI_IOC_MESSAGE(1), &spiCtrl);
+    mutex_.unlock();
+}
+
+
 NautilusReply Nautilus::spiComm(uint8_t *buffer)
 {
     mutex_.lock();
@@ -151,7 +173,7 @@ NautilusReply Nautilus::spiComm(uint8_t *buffer)
     spiCtrl.len = 8;
     spiCtrl.speed_hz = frequency_;
     spiCtrl.bits_per_word = 8;
-    spiCtrl.delay_usecs = 10;
+    spiCtrl.delay_usecs = 0;
 
     int res = ioctl(fileDescriptor_, SPI_IOC_MESSAGE(1), &spiCtrl);
 

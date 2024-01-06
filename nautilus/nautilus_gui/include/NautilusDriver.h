@@ -51,6 +51,9 @@ namespace nautilus
             /// @param voltageRatio Ratio of max voltage, range 0-1
             NautilusReply commutation(float const& theta, float const& voltageRatio);
 
+            /// @brief Test function: send an invalid command.
+            void sendInvalidCommand();
+
             int nSuccess = 0;
             int nFailed = 0;
         private:

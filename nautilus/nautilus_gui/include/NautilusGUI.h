@@ -61,6 +61,8 @@ class NautilusGUI : public Gtk::Window
         void startCommutation();
         void motionClicked();
 
+        void sendInvalidCommand();
+
 
         nautilus::Nautilus* nautilus_;
 

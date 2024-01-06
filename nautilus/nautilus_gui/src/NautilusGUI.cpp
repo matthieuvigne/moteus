@@ -240,6 +240,11 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
     vBox->pack_start(*button, Gtk::PACK_SHRINK);
     button->signal_clicked().connect(sigc::mem_fun(nautilus_, &nautilus::Nautilus::storeToPersistentMemory));
 
+    button = new Gtk::Button("Test: send invalid command");
+    button->set_halign(Gtk::ALIGN_CENTER);
+    vBox->pack_start(*button, Gtk::PACK_SHRINK);
+    button->signal_clicked().connect(sigc::mem_fun(nautilus_, &nautilus::Nautilus::sendInvalidCommand));
+
     sep = new Gtk::Separator(Gtk::ORIENTATION_HORIZONTAL);
     vBox->pack_start(*sep, Gtk::PACK_SHRINK);
 
@@ -428,3 +433,9 @@ void NautilusGUI::writeRegister(int const& index)
     updateReadings();
 }
 
+
+
+void NautilusGUI::sendInvalidCommand()
+{
+    nautilus_->sendInvalidCommand();
+}
