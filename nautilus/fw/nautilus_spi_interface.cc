@@ -5,7 +5,7 @@
 
 using namespace nautilus;
 
-#define FIRMWARE_VERSION 100
+#define FIRMWARE_VERSION 101
 
 #define TWO_PI       6.283185307179586f
 
@@ -201,6 +201,7 @@ void __attribute__ ((optimize("O3"))) nautilus::processWriteCommand(uint8_t cons
             bldc->Command(*command);
             break;
 
+        case SPIRegister::nbrOfPoles:           bldc->motor()->poles = registerValue & 0xFF; break;
         default:
             break;
     }

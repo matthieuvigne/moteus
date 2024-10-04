@@ -117,7 +117,7 @@ namespace nautilus
         GUIRegister(Register::rawEncoderPos, "Raw position",        false, false),
         GUIRegister(Register::encoderOrientation, "Encoder orientation", false, true),
         GUIRegister(Register::commutationOffset, "Commutation offset",  true, true),
-        GUIRegister(Register::nbrOfPoles, "Number of poles",     false, false),
+        GUIRegister(Register::nbrOfPoles, "Number of poles",     false, true),
 
         GUIRegister(Register::currentLoopKp, "Current loop Kp", true, true),
         GUIRegister(Register::currentLoopKi, "Current loop Ki", true, true),
