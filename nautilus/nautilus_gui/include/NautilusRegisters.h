@@ -53,6 +53,9 @@ namespace nautilus
         driverMaxTemperature    = 0x52,
         commTimeout             = 0x53,
 
+        driveSourceCurrent      = 0x60,
+        driveSinkCurrent        = 0x61,
+
         firmwareVersion         = 0xFF,
     };
 
@@ -133,6 +136,9 @@ namespace nautilus
         GUIRegister(Register::motorMaxTemperature, "Motor max temperature", true, true),
         GUIRegister(Register::driverMaxTemperature, "Driver max temperature", true, true),
         GUIRegister(Register::commTimeout, "Communication timeout ms", false, true),
+
+        GUIRegister(Register::driveSourceCurrent, "Gate source current", false, true),
+        GUIRegister(Register::driveSinkCurrent, "Gate sink current", false, true),
 
         GUIRegister(Register::firmwareVersion, "Firmware version", false, false),
     });

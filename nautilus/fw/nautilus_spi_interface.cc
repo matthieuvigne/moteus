@@ -149,6 +149,8 @@ void __attribute__ ((optimize("O3"))) nautilus::processReadCommand(uint8_t const
     case SPIRegister::motorMaxTemperature:  std::memcpy(&output, &bldc->config().enable_motor_temperature ? &bldc->config().motor_fault_temperature : &MINUS_ONE, 4); break;
     case SPIRegister::driverMaxTemperature: std::memcpy(&output, &bldc->config().fault_temperature, 4); break;
     case SPIRegister::commTimeout:          output = timeoutMs; break;
+    case SPIRegister::driveSourceCurrent:   output = drv8323->getConfig()->idrivep_hs_ma; break;
+    case SPIRegister::driveSinkCurrent:     output = drv8323->getConfig()->idriven_hs_ma; break;
     case SPIRegister::firmwareVersion:      output = FIRMWARE_VERSION; break;
     default:                                output = 0; break;
     }
@@ -202,6 +204,14 @@ void __attribute__ ((optimize("O3"))) nautilus::processWriteCommand(uint8_t cons
             break;
 
         case SPIRegister::nbrOfPoles:           bldc->motor()->poles = registerValue & 0xFF; break;
+        case SPIRegister::driveSourceCurrent:
+            drv8323->getConfig()->idrivep_hs_ma = static_cast<uint16_t>(registerValue);
+            drv8323->getConfig()->idrivep_ls_ma = static_cast<uint16_t>(registerValue);
+            break;
+        case SPIRegister::driveSinkCurrent:
+            drv8323->getConfig()->idriven_hs_ma = static_cast<uint16_t>(registerValue);
+            drv8323->getConfig()->idriven_ls_ma = static_cast<uint16_t>(registerValue);
+            break;
         default:
             break;
     }

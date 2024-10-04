@@ -300,6 +300,7 @@ class Drv8323 : public MotorDriver {
     }
   };
 
+  Config *getConfig();
  private:
   class Impl;
   mjlib::micro::PoolPtr<Impl> impl_;

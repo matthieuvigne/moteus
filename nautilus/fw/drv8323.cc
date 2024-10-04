@@ -402,5 +402,6 @@ bool Drv8323::fault() {
 
 void Drv8323::PollMillisecond() { impl_->PollMillisecond(); }
 const Drv8323::Status* Drv8323::status() const { return &impl_->status_; }
+Drv8323::Config *Drv8323::getConfig() { return &(impl_->config_); }
 
 }

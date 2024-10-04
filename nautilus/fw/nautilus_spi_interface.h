@@ -61,6 +61,10 @@ enum SPIRegister {
     driverMaxTemperature = 0x52,       // float32_t
     commTimeout          = 0x53,       // uint16_t
 
+
+    driveSourceCurrent          = 0x60,       // uint16_t
+    driveSinkCurrent            = 0x61,       // uint16_t
+
     firmwareVersion      = 0xFF,       // uint32_t
 };
 
