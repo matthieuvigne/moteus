@@ -194,7 +194,7 @@ NautilusGUI::NautilusGUI(nautilus::Nautilus *nautilus):
             }
             else
             {
-                updateEntries_.back().second.set_range(-32766, 32766);
+                updateEntries_.back().second.set_range(0, 4294967295);
                 updateEntries_.back().second.set_digits(0);
             }
             updateEntries_.back().second.set_width_chars(7);

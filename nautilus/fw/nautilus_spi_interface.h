@@ -64,6 +64,7 @@ enum SPIRegister {
 
     driveSourceCurrent          = 0x60,       // uint16_t
     driveSinkCurrent            = 0x61,       // uint16_t
+    freezePosition              = 0x62,       // uint16_t
 
     firmwareVersion      = 0xFF,       // uint32_t
 };

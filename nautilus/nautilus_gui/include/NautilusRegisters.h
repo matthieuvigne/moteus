@@ -55,6 +55,7 @@ namespace nautilus
 
         driveSourceCurrent      = 0x60,
         driveSinkCurrent        = 0x61,
+        freezePosition          = 0x62,
 
         firmwareVersion         = 0xFF,
     };
@@ -139,6 +140,7 @@ namespace nautilus
 
         GUIRegister(Register::driveSourceCurrent, "Gate source current", false, true),
         GUIRegister(Register::driveSinkCurrent, "Gate sink current", false, true),
+        GUIRegister(Register::freezePosition, "Force encoder position", false, true),
 
         GUIRegister(Register::firmwareVersion, "Firmware version", false, false),
     });

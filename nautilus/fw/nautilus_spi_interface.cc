@@ -152,6 +152,7 @@ void __attribute__ ((optimize("O3"))) nautilus::processReadCommand(uint8_t const
     case SPIRegister::driveSourceCurrent:   output = drv8323->getConfig()->idrivep_hs_ma; break;
     case SPIRegister::driveSinkCurrent:     output = drv8323->getConfig()->idriven_hs_ma; break;
     case SPIRegister::firmwareVersion:      output = FIRMWARE_VERSION; break;
+    case SPIRegister::freezePosition:       output = bldc->motor_position_config()->sources[0].debug_override; break;
     default:                                output = 0; break;
     }
 }
@@ -174,6 +175,7 @@ void __attribute__ ((optimize("O3"))) nautilus::processWriteCommand(uint8_t cons
         case SPIRegister::positionLoopKi:       bldc->config().pid_position.ki = fRegisterValue; break;
         case SPIRegister::positionLoopIntMax:   bldc->config().pid_position.ilimit = fRegisterValue; break;
         case SPIRegister::commTimeout:          timeoutMs = registerValue; break;
+        case SPIRegister::freezePosition:       bldc->motor_position_config()->sources[0].debug_override = static_cast<int32_t>(registerValue); break;
 
         case SPIRegister::encoderOrientation:   bldc->motor()->phase_invert = registerValue & 0xFF; break;
         case SPIRegister::commutationOffset:
